@@ -35,6 +35,36 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+# ====== 自动开放端口 ======
+FRP_PORT=7000
+WEB_PORT=5000
+
+echo "[INFO] 检查并放行本地防火墙端口..."
+
+# 检查是否安装了 ufw
+if command -v ufw >/dev/null 2>&1; then
+    echo "[INFO] 检测到 ufw，放行端口..."
+    sudo ufw allow ${FRP_PORT}/tcp
+    sudo ufw allow ${WEB_PORT}/tcp
+fi
+
+# 检查是否安装了 firewalld
+if systemctl is-active firewalld >/dev/null 2>&1; then
+    echo "[INFO] 检测到 firewalld，放行端口..."
+    sudo firewall-cmd --permanent --add-port=${FRP_PORT}/tcp
+    sudo firewall-cmd --permanent --add-port=${WEB_PORT}/tcp
+    sudo firewall-cmd --reload
+fi
+
+# iptables 直接放行
+if command -v iptables >/dev/null 2>&1; then
+    echo "[INFO] 检测到 iptables，放行端口..."
+    sudo iptables -I INPUT -p tcp --dport ${FRP_PORT} -j ACCEPT
+    sudo iptables -I INPUT -p tcp --dport ${WEB_PORT} -j ACCEPT
+fi
+
+echo "[NOTICE] 本地防火墙已放行 ${FRP_PORT} 和 ${WEB_PORT} 端口"
+echo "[ACTION] ⚠️ 请务必去 腾讯云控制台 → 安全组 → 入站规则 手动放行 ${FRP_PORT} 和 ${WEB_PORT}"
 
 # 启动服务
 systemctl daemon-reexec
