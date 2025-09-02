@@ -912,7 +912,7 @@ class CryptoTrader:
         self.is_restarting = False  # 重启状态标志
 
         # 初始化本金
-        self.initial_amount = 50
+        self.initial_amount = 20
         self.first_rebound = 100
         self.n_rebound = 100
         self.profit_rate = 5
@@ -3258,7 +3258,7 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
-                    for retry in range(3):
+                    for retry in range(2):
                         self.logger.info(f"✅ \033[35mUp: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
                 
                         # 计时开始
@@ -3274,7 +3274,7 @@ class CryptoTrader:
                             # 设置UP4价格为默认卖出价格62
                             self.yes4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
                             self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, "62")
+                            self.yes4_price_entry.insert(0, "60")
                             self.yes4_price_entry.configure(foreground='red')
 
                             # 设置UP3价格为默认平仓价格 53
@@ -3335,7 +3335,7 @@ class CryptoTrader:
                             # 设置DOWN4价格为默认卖价62
                             self.no4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
                             self.no4_price_entry.delete(0, tk.END)
-                            self.no4_price_entry.insert(0, "62")
+                            self.no4_price_entry.insert(0, "60")
                             self.no4_price_entry.configure(foreground='red')
                             
                             # 设置DOWN3价格为默认平仓价格 53
@@ -3393,8 +3393,6 @@ class CryptoTrader:
                         self.trading = True
                         for attemp in range(3):
                             self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
-
-                            
                             self.only_sell_up()
 
                             #设置 DOWN1 价格为54
@@ -3413,6 +3411,11 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
+
+                            # 设置 UP1 价格为 54
+                            self.yes1_price_entry.delete(0, tk.END)
+                            self.yes1_price_entry.insert(0, str(self.default_target_price))
+                            self.yes1_price_entry.configure(foreground='red')
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
 
@@ -3449,6 +3452,11 @@ class CryptoTrader:
                         self.yes1_price_entry.delete(0, tk.END)
                         self.yes1_price_entry.insert(0, str(self.default_target_price))
                         self.yes1_price_entry.configure(foreground='red')
+
+                        # 设置 DOWN1 价格为 54
+                        self.no1_price_entry.delete(0, tk.END)
+                        self.no1_price_entry.insert(0, str(self.default_target_price))
+                        self.no1_price_entry.configure(foreground='red')
         except Exception as e:
             self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
