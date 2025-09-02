@@ -4476,7 +4476,16 @@ class CryptoTrader:
     def get_binance_zero_time_price(self):
         """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""   
         # 先把所有 YES/NO 价格设置为 0
-        self.set_up_down_price_0()
+        for i in range(1,5):  # 1-4
+            yes_entry = getattr(self, f'yes{i}_price_entry', None)
+            no_entry = getattr(self, f'no{i}_price_entry', None)
+
+            if yes_entry:
+                yes_entry.clear()
+                yes_entry.send_keys("0")
+            if no_entry:
+                no_entry.clear()
+                no_entry.send_keys("0")
 
         # 同步UP1/DOWN1价格重置到StatusDataManager
         self._update_status_async('positions', 'up_positions', [
@@ -4749,7 +4758,16 @@ class CryptoTrader:
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
 
                     # 设置 YES1-4/NO1-4 价格为 0
-                    self.set_up_down_price_0()
+                    for i in range(1,5):  # 1-4
+                        yes_entry = getattr(self, f'yes{i}_price_entry', None)
+                        no_entry = getattr(self, f'no{i}_price_entry', None)
+
+                        if yes_entry:
+                            yes_entry.clear()
+                            yes_entry.send_keys("0")
+                        if no_entry:
+                            no_entry.clear()
+                            no_entry.send_keys("0")
 
                     # 设置 YES1/NO1 价格为默认值
                     self.no1_price_entry.delete(0, tk.END)
