@@ -2149,6 +2149,8 @@ class CryptoTrader:
                     subprocess.run("pkill -9 chromedriver", shell=True)
                     
                 self.logger.info("已强制关闭所有Chrome进程")
+                # 等待进程完全退出
+                time.sleep(2)
             except Exception as e:
                 self.logger.error(f"强制关闭Chrome进程失败: {str(e)}")
                 
@@ -2186,12 +2188,13 @@ class CryptoTrader:
                         raise FileNotFoundError(f"启动脚本不存在: {script_path}")
                     
                     # 启动Chrome进程（异步）
+                    self.logger.info("执行Chrome启动脚本: " + script_path)
                     process = subprocess.Popen(['bash', script_path], 
                                              stdout=subprocess.PIPE, 
                                              stderr=subprocess.PIPE)
                     
                     # 等待Chrome调试端口可用
-                    max_wait_time = 30
+                    max_wait_time = 45  # 增加等待时间到45秒
                     wait_interval = 1
                     for wait_time in range(0, max_wait_time, wait_interval):
                         time.sleep(wait_interval)
@@ -2201,15 +2204,34 @@ class CryptoTrader:
                                 if response.status_code == 200:
                                     self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
                                     break
-                        except:
+                        except Exception as e:
+                            self.logger.debug(f"等待Chrome启动中 ({wait_time+1}/{max_wait_time}秒): {e}")
                             continue
                     else:
-                        raise Exception("Chrome调试端口在30秒内未能启动")
+                        # 检查进程是否仍在运行
+                        if process.poll() is not None:
+                            stdout, stderr = process.communicate()
+                            self.logger.error(f"Chrome进程已退出，退出码: {process.returncode}")
+                            self.logger.error(f"标准输出: {stdout.decode('utf-8', errors='ignore')}")
+                            self.logger.error(f"标准错误: {stderr.decode('utf-8', errors='ignore')}")
+                        raise Exception(f"Chrome调试端口在{max_wait_time}秒内未能启动")
                     
                 except Exception as e:
                     self.logger.error(f"启动Chrome失败: {e}")
-                    self.restart_browser(force_restart=True)
-                    return False
+                    # 使用静态变量记录重试次数
+                    if not hasattr(self, '_restart_attempts'):
+                        self._restart_attempts = 0
+                    self._restart_attempts += 1
+                    
+                    # 限制最大重试次数为3次
+                    if self._restart_attempts < 3:
+                        self.logger.info(f"5秒后尝试再次重启浏览器... (第{self._restart_attempts}次重试)")
+                        time.sleep(5)
+                        return self.restart_browser(force_restart=True)
+                    else:
+                        self.logger.error("已达到最大重试次数(3次)，放弃重启")
+                        self._restart_attempts = 0  # 重置计数器
+                        return False
             
             # 3. 重新连接浏览器（带重试机制）
             max_retries = 3
@@ -2289,6 +2311,12 @@ class CryptoTrader:
         finally:
             with self.restart_lock:
                 self.is_restarting = False
+                # 重置重试计数
+                if hasattr(self, '_restart_attempts'):
+                    self._restart_attempts = 0
+                # 如果driver为None，记录日志
+                if self.driver is None:
+                    self.logger.warning("浏览器重启后driver仍为None，可能需要手动干预")
 
     def restart_browser_after_auto_find_coin(self):
         """重连浏览器后自动检查并更新URL中的日期"""
@@ -5630,6 +5658,13 @@ SHARES: {shares}
         if getattr(self, 'is_restarting', False):
             time.sleep(0.1)
             return None
+            
+        # 检查driver是否为None
+        if self.driver is None:
+            if not silent:
+                self.logger.warning("浏览器驱动为None，无法查找元素")
+            return None
+            
         # 生成缓存键
         cache_key = str(sorted(xpaths)) if use_cache else None
         
