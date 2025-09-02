@@ -912,11 +912,11 @@ class CryptoTrader:
         self.is_restarting = False  # 重启状态标志
 
         # 初始化本金
-        self.initial_amount = 0.65
-        self.first_rebound = 190
-        self.n_rebound = 122
-        self.profit_rate = 1.4
-        self.doubling_weeks = 48
+        self.initial_amount = 50
+        self.first_rebound = 100
+        self.n_rebound = 100
+        self.profit_rate = 5
+        self.doubling_weeks = 8
 
         # 初始化交易统计管理器
         try:
@@ -961,7 +961,8 @@ class CryptoTrader:
 
         # 默认买价
         self.default_target_price = 54 # 不修改
-
+        # 默认卖价
+        self.sell_target_price = 65 # 不修改
         # 添加交易次数计数器
         self.buy_count = 0
         self.sell_count = 0
@@ -970,7 +971,7 @@ class CryptoTrader:
         self.trade_count = 22
         
         # 买入价格冗余
-        self.price_premium = 4 # 不修改
+        self.price_premium = 1 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
@@ -2578,9 +2579,9 @@ class CryptoTrader:
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
                         self.First_trade(up_price_val, down_price_val)
-                        self.Second_trade(up_price_val, down_price_val)
-                        self.Third_trade(up_price_val, down_price_val)
-                        self.Forth_trade(up_price_val, down_price_val)
+                        self.sell_up(up_price_val, down_price_val)
+                        self.sell_down(up_price_val, down_price_val)
+                        
                         self.monitor_record_up_down_price(up_price_val, down_price_val)
 
                     return up_price_val, down_price_val
@@ -3257,16 +3258,11 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
-                    for retry in range(5):
+                    for retry in range(3):
                         self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
                 
                         # 计时开始
                         start_time = time.perf_counter()
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
 
                         # 买入 UP1
                         self.buy_operation(self.up1_amount)
@@ -3275,15 +3271,17 @@ class CryptoTrader:
                             # 重置Up1和Down1价格为0,参数为价格编号
                             self.reset_up_down_price_0(1)
                             
-                            # 第一次买 UP1,不用卖出 DOWN
-                            if self.trade_count < 22:
-                                self.only_sell_down()
+                            # 设置UP4价格为默认卖出价格62
+                            self.yes4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
+                            self.yes4_price_entry.delete(0, tk.END)
+                            self.yes4_price_entry.insert(0, "62")
+                            self.yes4_price_entry.configure(foreground='red')
 
-                            # 设置No2价格为str(self.default_target_price)
-                            self.no2_price_entry = self.no_frame.grid_slaves(row=2, column=1)[0]
-                            self.no2_price_entry.delete(0, tk.END)
-                            self.no2_price_entry.insert(0, str(self.default_target_price))
-                            self.no2_price_entry.configure(foreground='red')
+                            # 设置UP3价格为默认平仓价格 53
+                            self.yes3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
+                            self.yes3_price_entry.delete(0, tk.END)
+                            self.yes3_price_entry.insert(0, "53")
+                            self.yes3_price_entry.configure(foreground='red')
                             
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -3323,11 +3321,7 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
-
+                        
                         # 点击buy_down按钮  
                         self.click_buy_down_button()
 
@@ -3338,15 +3332,17 @@ class CryptoTrader:
                             # 重置Up1和Down1价格为0
                             self.reset_up_down_price_0(1)
                             
-                            # 第一次买 UP1,不用卖出 DOWN
-                            if self.trade_count < 22:
-                                self.only_sell_up()
-
-                            # 设置Yes2价格为str(self.default_target_price)
-                            self.yes2_price_entry = self.yes_frame.grid_slaves(row=2, column=1)[0]
-                            self.yes2_price_entry.delete(0, tk.END)
-                            self.yes2_price_entry.insert(0, str(self.default_target_price))
-                            self.yes2_price_entry.configure(foreground='red')
+                            # 设置DOWN4价格为默认卖价62
+                            self.no4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
+                            self.no4_price_entry.delete(0, tk.END)
+                            self.no4_price_entry.insert(0, "62")
+                            self.no4_price_entry.configure(foreground='red')
+                            
+                            # 设置DOWN3价格为默认平仓价格 53
+                            self.no3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
+                            self.no3_price_entry.delete(0, tk.END)
+                            self.no3_price_entry.insert(0, "53")
+                            self.no3_price_entry.configure(foreground='red')
                             
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -3383,434 +3379,78 @@ class CryptoTrader:
             self.logger.error(f"First_trade执行失败: {str(e)}")
         finally:
             self.trading = False
-            
-    def Second_trade(self, up_price, down_price):
-        """处理Yes2/No2的自动交易"""
-        try:
-            if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):
-                # 获Yes2和No2的价格输入框
-                yes2_price = float(self.yes2_price_entry.get())
-                no2_price = float(self.no2_price_entry.get())
-                
-                # 检查Yes2价格匹配
-                if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
-                    self.trading = True
-
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
-
-                        # 执行买入 UP2 操作
-                        self.buy_operation(self.up2_amount)
-                        
-                        if self.verify_trade('Bought', 'Up')[0]:
-                            
-                            # 重置Yes2和No2价格为0
-                            self.reset_up_down_price_0(2)
-                            
-                            # 卖出DOWN
-                            self.only_sell_down()
-
-                            # 设置No3价格为str(self.default_target_price)
-                            self.no3_price_entry = self.no_frame.grid_slaves(row=4, column=1)[0]
-                            self.no3_price_entry.delete(0, tk.END)
-                            self.no3_price_entry.insert(0, str(self.default_target_price))
-                            self.no3_price_entry.configure(foreground='red')
-                            
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-                            
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
-
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-                            
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
-                    else:
-                        self.send_trade_email(
-                            trade_type="Buy Up2失败",
-                            price=up_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )
-                # 检查No2价格匹配
-                elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
-                    self.trading = True  # 开始交易
-
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
-
-                        # 执行交易操作
-                        self.click_buy_down_button()
-
-                        # 执行买入 DOWN2 操作
-                        self.buy_operation(self.down2_amount)
-
-                        if self.verify_trade('Bought', 'Down')[0]:
-                            
-                            # 重置Yes2和No2价格为0
-                            self.reset_up_down_price_0(2)
-                            
-                            # 卖出UP
-                            self.only_sell_up()
-
-                            # 设置YES3价格为str(self.default_target_price)
-                            self.yes3_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
-                            self.yes3_price_entry.delete(0, tk.END)
-                            self.yes3_price_entry.insert(0, str(self.default_target_price))
-                            self.yes3_price_entry.configure(foreground='red')
-                            
-                            self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
-
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-                            
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
-                            
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-                            
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
-                    else:
-                        self.send_trade_email(
-                            trade_type="Buy Down2失败",
-                            price=down_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )
-        except ValueError as e:
-            self.logger.error(f"价格转换错误: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"Second_trade执行失败: {str(e)}")
-        finally:
-            self.trading = False
     
-    def Third_trade(self, up_price, down_price):
-        """处理Yes3/No3的自动交易"""
-        try:
-            if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):              
-                # 获取Yes3和No3的价格输入框
-                yes3_price = float(self.yes3_price_entry.get())
-                no3_price = float(self.no3_price_entry.get())
-                
-                # 检查Yes3价格匹配
-                if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
-                    self.trading = True  # 开始交易
-            
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
-
-                        # 执行买入 UP3 操作
-                        self.buy_operation(self.up3_amount)
-
-                        if self.verify_trade('Bought', 'Up')[0]:
-                            # 获取 YES3 的金额
-                            
-                            # 重置Yes3和No3价格为0
-                            self.reset_up_down_price_0(3)
-
-                            # 卖出DOWN
-                            self.only_sell_down()
-
-                            # 设置No4价格为str(self.default_target_price)
-                            self.no4_price_entry = self.no_frame.grid_slaves(row=6, column=1)[0]
-                            self.no4_price_entry.delete(0, tk.END)
-                            self.no4_price_entry.insert(0, str(self.default_target_price))
-                            self.no4_price_entry.configure(foreground='red')
-                            #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
-
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-  
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
-                            
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
-                    else:
-                        # 3次失败后发邮件
-                        self.send_trade_email(
-                            trade_type="Buy UP3失败",
-                            price=up_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )   
-
-                # 检查No3价格匹配
-                elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
-                    self.trading = True  # 开始交易
-
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
-
-                        # 执行交易操作
-                        self.click_buy_down_button()
-
-                        # 执行买入 DOWN3 操作
-                        self.buy_operation(self.down3_amount)
-
-                        if self.verify_trade('Bought', 'Down')[0]:
-                            
-                            # 重置Yes3和No3价格为0
-                            self.reset_up_down_price_0(3)
-
-                            # 卖出UP
-                            self.only_sell_up()
-
-                            # 设置Yes4价格为str(self.default_target_price)
-                            self.yes4_price_entry = self.yes_frame.grid_slaves(row=6, column=1)[0]
-                            self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, str(self.default_target_price))
-                            self.yes4_price_entry.configure(foreground='red')
-                            #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
-
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
-                            
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
-                    else:
-                        # 3次失败后发邮件
-                        self.send_trade_email(
-                            trade_type="Buy Down3失败",
-                            price=down_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )
-                        self.logger.error(f"❌ \033[31mBuy Down3 连续3次失败\033[0m")
-            
-        except ValueError as e:
-            self.logger.error(f"价格转换错误: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"Third_trade执行失败: {str(e)}")    
-        finally:
-            self.trading = False
-
-    def Forth_trade(self, up_price, down_price):
-        """处理Yes4/No4的自动交易"""
+    def sell_up(self, up_price, down_price):
+        """卖出UP"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):  
-                # 获取Yes4和No4的价格输入框
-                yes4_price = float(self.yes4_price_entry.get())
-                no4_price = float(self.no4_price_entry.get())
-                
-                # 检查Yes4价格匹配
-                if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
-                    self.trading = True  # 开始交易
+                    # 获取up4和down4的价格输入框
+                    up4_price = float(self.yes4_price_entry.get())
+                    up3_price = float(self.yes3_price_entry.get())
+                    # 检查up4价格匹配
+                    if (round((up_price - up4_price), 2) >= 0) and up_price > 20:
+                        self.trading = True
+                        for attemp in range(3):
+                            self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
 
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
-
-                        # 执行买入 UP4 操作
-                        self.buy_operation(self.up4_amount)
-
-                        if self.verify_trade('Bought', 'Up')[0]:
                             
-                            # 设置 YES4/No4的价格为0
-                            self.reset_up_down_price_0(4)
+                            self.only_sell_up()
 
-                            # 卖出DOWN
-                            self.only_sell_down()
-
-                            # 设置 NO1 价格为str(self.default_target_price)
+                            #设置 DOWN1 价格为54
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
 
-                            # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
-                            self.reset_yes_no_amount()
+                    elif (round((up_price - up3_price), 2) <= 0) and up_price > 20:
+                        self.trading = True  # 开始交易
+                        for attemp in range(3):
+                            self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
                             
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
-                            
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-                           
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
-                    else:
-                        # 3次失败后发邮件
-                        self.send_trade_email(
-                            trade_type="Buy Up4失败",
-                            price=up_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )
-                # 检查No4价格匹配
-                elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
-                    self.trading = True  # 开始交易
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
-                        # 执行交易操作
-                        self.click_buy_down_button()
-
-                        # 执行买入 DOWN4 操作
-                        self.buy_operation(self.down4_amount)
- 
-                        if self.verify_trade('Bought', 'Down')[0]:
-                            
-                            # 设置 YES4/No4的价格为0
-                            self.reset_up_down_price_0(4)
-
-                            # 卖出UP
-                            self.only_sell_up()
-
-                            # 设置 YES1价格为str(self.default_target_price)
-                            self.yes1_price_entry.configure(foreground='red')
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, str(self.default_target_price))
-
-                            # 设置 UP1-4/DOWN1-4 的金额
-                            self.reset_yes_no_amount()
-                            
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
-                            
-                            # 交易统计已在change_buy_and_trade_count中记录
-
-                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.async_gui_price_amount_to_web()
-
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
-
-                            break
-                        else:
-                            self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
-                    else:
-                        # 3次失败后发邮件
-                        self.send_trade_email(
-                            trade_type="Buy Down4失败",
-                            price=down_price,
-                            amount=0,
-                            shares=0,
-                            trade_count=self.buy_count,
-                            cash_value=self.cash_value,
-                            portfolio_value=self.portfolio_value
-                        )   
-            
-        except ValueError as e:
-            self.logger.error(f"价格转换错误: {str(e)}")
+                            #设置 DOWN1 价格为54
+                            self.no1_price_entry.delete(0, tk.END)
+                            self.no1_price_entry.insert(0, str(self.default_target_price))
+                            self.no1_price_entry.configure(foreground='red')
         except Exception as e:
-            self.logger.error(f"Forth_trade执行失败: {str(e)}")  
+            self.logger.error(f"sell_up执行失败: {str(e)}")
+
+        finally:
+            self.trading = False
+
+    def sell_down(self, up_price, down_price):
+        """卖出DOWN"""  
+        try:
+            if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):  
+                # 获取up4和down4的价格输入框
+                down4_price = float(self.yes4_price_entry.get()) 
+                down3_price = float(self.no3_price_entry.get())
+
+                # 检查down4价格匹配
+                if (round((down_price - down4_price), 2) >= 0) and down_price > 20:
+                    for attemp in range(3):
+                        self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
+                        self.trading = True  # 开始交易
+                        self.only_sell_down()
+
+                        # 设置 UP1 价格为 54
+                        self.yes1_price_entry.delete(0, tk.END)
+                        self.yes1_price_entry.insert(0, str(self.default_target_price))
+                        self.yes1_price_entry.configure(foreground='red')
+
+                elif (round((down_price - down3_price), 2) <= 0) and down_price > 20:
+                    for attemp in range(3):
+                        self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
+                        self.trading = True  # 开始交易
+                        self.only_sell_down()
+
+                        # 设置 UP1 价格为 54
+                        self.yes1_price_entry.delete(0, tk.END)
+                        self.yes1_price_entry.insert(0, str(self.default_target_price))
+                        self.yes1_price_entry.configure(foreground='red')
+        except Exception as e:
+            self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
             self.trading = False
 
