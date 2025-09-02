@@ -979,10 +979,12 @@ class CryptoTrader:
         # UP 状态
         self.tracking_up = False
         self.up_price_high = None
+        self.up_price_high_time = None
 
         # DOWN 状态
         self.tracking_down = False
         self.down_price_high = None
+        self.down_price_high_time = None
 
         # 历史记录
         self.history = []
@@ -3192,19 +3194,21 @@ class CryptoTrader:
         if not self.tracking_up and (99 > up_price > 54):  # 修改为严格大于54
             self.tracking_up = True
             self.up_price_high = up_price
+            self.up_price_high_time = datetime.now()  # 记录最高点时间
             self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54以上, 当前价格={up_price}\033[0m")
 
         if self.tracking_up:
             # 更新最高点，不打印日志
             if up_price > self.up_price_high:
                 self.up_price_high = up_price
+                self.up_price_high_time = datetime.now()  # 更新最高点时间
             # 只有当价格回落到54以下时才记录高点并打印日志
             elif 10 < up_price < 54:  # 修改为严格小于54
                 # 回落到 54 以下，记录最高点
                 record = {
                     "symbol": "UP",
-                    "high": self.up_price_high,
-                    "time": datetime.now()
+                    "high": self.up_price_high,  # 使用记录的最高价格
+                    "time": self.up_price_high_time  # 使用记录的最高点时间
                 }
                 self.history.append(record)
                 self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
@@ -3213,25 +3217,28 @@ class CryptoTrader:
                 # 重置 UP 跟踪
                 self.tracking_up = False
                 self.up_price_high = None
+                self.up_price_high_time = None
 
         # ---- DOWN ----
         # 只有当价格首次达到54以上时才启动跟踪并记录日志
         if not self.tracking_down and (99 > down_price > 54):  # 修改为严格大于54
             self.tracking_down = True
             self.down_price_high = down_price
+            self.down_price_high_time = datetime.now()  # 记录最高点时间
             self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54以上, 当前价格={down_price}\033[0m")
 
         if self.tracking_down:
             # 更新最高点，不打印日志
             if down_price > self.down_price_high:
                 self.down_price_high = down_price
+                self.down_price_high_time = datetime.now()  # 更新最高点时间
             # 只有当价格回落到54以下时才记录高点并打印日志
             elif 10 < down_price < 54:  # 修改为严格小于54
                 # 回落到 54 以下，记录最高点
                 record = {
                     "symbol": "DOWN",
-                    "high": self.down_price_high,
-                    "time": datetime.now()
+                    "high": self.down_price_high,  # 使用记录的最高价格
+                    "time": self.down_price_high_time  # 使用记录的最高点时间
                 }
                 self.history.append(record)
                 self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
@@ -3240,6 +3247,7 @@ class CryptoTrader:
                 # 重置 DOWN 跟踪
                 self.tracking_down = False
                 self.down_price_high = None
+                self.down_price_high_time = None
 
     def check_emergency_close(self):
         """
