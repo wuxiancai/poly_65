@@ -3384,12 +3384,12 @@ class CryptoTrader:
     def sell_up(self, up_price, down_price):
         """卖出UP"""
         try:
-            if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):  
+            if up_price is not None and (up_price > 10):  
                     # 获取up4和down4的价格输入框
                     up4_price = float(self.yes4_price_entry.get())
                     up3_price = float(self.yes3_price_entry.get())
                     # 检查up4价格匹配
-                    if (round((up_price - up4_price), 2) >= 0) and up_price > 20:
+                    if (round((up_price - up4_price), 2) >= 0) and (up4_price > 20):
                         self.trading = True
                         for attemp in range(3):
                             self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
@@ -3400,7 +3400,7 @@ class CryptoTrader:
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
 
-                    elif (round((up_price - up3_price), 2) <= 0) and up_price > 20:
+                    elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
                         self.trading = True  # 开始交易
                         for attemp in range(3):
                             self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
@@ -3425,13 +3425,13 @@ class CryptoTrader:
     def sell_down(self, up_price, down_price):
         """卖出DOWN"""  
         try:
-            if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):  
+            if down_price is not None and (down_price > 10):  
                 # 获取up4和down4的价格输入框
                 down4_price = float(self.yes4_price_entry.get()) 
                 down3_price = float(self.no3_price_entry.get())
 
                 # 检查down4价格匹配
-                if (round((down_price - down4_price), 2) >= 0) and down_price > 20:
+                if (round((down_price - down4_price), 2) >= 0) and (down4_price > 20):
                     for attemp in range(3):
                         self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
                         self.trading = True  # 开始交易
@@ -3442,7 +3442,7 @@ class CryptoTrader:
                         self.yes1_price_entry.insert(0, str(self.default_target_price))
                         self.yes1_price_entry.configure(foreground='red')
 
-                elif (round((down_price - down3_price), 2) <= 0) and down_price > 20:
+                elif (round((down_price - down3_price), 2) <= 0) and (down3_price > 20):
                     for attemp in range(3):
                         self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
                         self.trading = True  # 开始交易
