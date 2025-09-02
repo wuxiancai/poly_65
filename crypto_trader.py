@@ -3435,30 +3435,29 @@ class CryptoTrader:
                     if (round((up_price - up4_price), 2) >= 0) and (up4_price > 20):
                         self.trading = True
                         for attemp in range(3):
-                            self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
-                            self.only_sell_up()
-
-                            #设置 DOWN1 价格为54
-                            self.no1_price_entry.delete(0, tk.END)
-                            self.no1_price_entry.insert(0, str(self.default_target_price))
-                            self.no1_price_entry.configure(foreground='red')
+                            self.logger.info(f"\033[34m  UP价格{up_price}匹配 第{attemp+1}次尝试sell_up平仓盈利 \033[0m")
+                            if self.only_sell_up():
+                                #设置 DOWN1 价格为54
+                                self.no1_price_entry.delete(0, tk.END)
+                                self.no1_price_entry.insert(0, str(self.default_target_price))
+                                self.no1_price_entry.configure(foreground='red')
 
                     elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
                         self.trading = True  # 开始交易
                         for attemp in range(3):
-                            self.logger.info(f"\033[34m第{attemp+1}次尝试sell_up \033[0m")
+                            self.logger.info(f"\033[34m UP价格{up_price}匹配 第{attemp+1}次尝试sell_up平仓止损 \033[0m")
                             
-                            self.only_sell_up()
+                            if self.only_sell_up():
+                                #设置 DOWN1 价格为54
+                                self.no1_price_entry.delete(0, tk.END)
+                                self.no1_price_entry.insert(0, str(self.default_target_price))
+                                self.no1_price_entry.configure(foreground='red')
 
-                            #设置 DOWN1 价格为54
-                            self.no1_price_entry.delete(0, tk.END)
-                            self.no1_price_entry.insert(0, str(self.default_target_price))
-                            self.no1_price_entry.configure(foreground='red')
+                                # 设置 UP1 价格为 54
+                                self.yes1_price_entry.delete(0, tk.END)
+                                self.yes1_price_entry.insert(0, str(self.default_target_price))
+                                self.yes1_price_entry.configure(foreground='red')
 
-                            # 设置 UP1 价格为 54
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, str(self.default_target_price))
-                            self.yes1_price_entry.configure(foreground='red')
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
 
@@ -3476,30 +3475,34 @@ class CryptoTrader:
                 # 检查down4价格匹配
                 if (round((down_price - down4_price), 2) >= 0) and (down4_price > 20):
                     for attemp in range(3):
-                        self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
+                        self.logger.info(f"\033[34m DOWN价格{down_price}匹配 第{attemp+1}次尝试sell_down平仓盈利 \033[0m")
                         self.trading = True  # 开始交易
-                        self.only_sell_down()
+                        if self.only_sell_down():
+                            # 设置 UP1 价格为 54
+                            self.yes1_price_entry.delete(0, tk.END)
+                            self.yes1_price_entry.insert(0, str(self.default_target_price))
+                            self.yes1_price_entry.configure(foreground='red')
 
-                        # 设置 UP1 价格为 54
-                        self.yes1_price_entry.delete(0, tk.END)
-                        self.yes1_price_entry.insert(0, str(self.default_target_price))
-                        self.yes1_price_entry.configure(foreground='red')
+                            # 设置 UP1 价格为 54
+                            self.yes1_price_entry.delete(0, tk.END)
+                            self.yes1_price_entry.insert(0, str(self.default_target_price))
+                            self.yes1_price_entry.configure(foreground='red')
 
                 elif (round((down_price - down3_price), 2) <= 0) and (down3_price > 20):
                     for attemp in range(3):
-                        self.logger.info(f"\033[34m第{attemp+1}次尝试sell_down \033[0m")
+                        self.logger.info(f"\033[34m DOWN价格{down_price}匹配 第{attemp+1}次尝试sell_down平仓止损 \033[0m")
                         self.trading = True  # 开始交易
-                        self.only_sell_down()
+                        if self.only_sell_down():
+                            # 设置 UP1 价格为 54
+                            self.yes1_price_entry.delete(0, tk.END)
+                            self.yes1_price_entry.insert(0, str(self.default_target_price))
+                            self.yes1_price_entry.configure(foreground='red')
 
-                        # 设置 UP1 价格为 54
-                        self.yes1_price_entry.delete(0, tk.END)
-                        self.yes1_price_entry.insert(0, str(self.default_target_price))
-                        self.yes1_price_entry.configure(foreground='red')
-
-                        # 设置 DOWN1 价格为 54
-                        self.no1_price_entry.delete(0, tk.END)
-                        self.no1_price_entry.insert(0, str(self.default_target_price))
-                        self.no1_price_entry.configure(foreground='red')
+                            # 设置 DOWN1 价格为 54
+                            self.no1_price_entry.delete(0, tk.END)
+                            self.no1_price_entry.insert(0, str(self.default_target_price))
+                            self.no1_price_entry.configure(foreground='red')
+                            
         except Exception as e:
             self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
@@ -3507,78 +3510,90 @@ class CryptoTrader:
 
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
-        # 重试 3 次
-        for retry in range(3):
-            self.logger.info("✅ \033[35m✅ 执行only_sell_up\033[0m")
-            # 计时
-            start_time = time.perf_counter()
+        try:
+            # 重试 3 次
+            for retry in range(3):
+                self.logger.info("✅ \033[35m✅ 执行only_sell_up\033[0m")
+                # 计时
+                start_time = time.perf_counter()
 
-            # 点击position_sell按钮
-            self.click_position_sell_up_button()    
+                # 点击position_sell按钮
+                self.click_position_sell_up_button()    
 
-            # 点击卖出确认按钮
-            self.click_buy_sell_confirm_button()
+                # 点击卖出确认按钮
+                self.click_buy_sell_confirm_button()
 
-            # 点击I Accept按钮
-            if self.no_i_accept_button:
-                self.click_i_accept_button()
+                # 点击I Accept按钮
+                if self.no_i_accept_button:
+                    self.click_i_accept_button()
 
-            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
-            self.click_buy_button()
+                # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
+                self.click_buy_button()
 
-            # 计时结束
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
-            
-            if self.verify_trade('Sold', 'Up')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
+                # 计时结束
+                elapsed = time.perf_counter() - start_time
+                self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
                 
-                self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
+                if self.verify_trade('Sold', 'Up')[0]:
+                    # 增加卖出计数
+                    self.sell_count += 1
+                    
+                    self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
 
-                break
-            else:
-                self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
-                self.driver.refresh()
-                time.sleep(2)
-                
+                    return True
+                else:
+                    self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
+                    self.driver.refresh()
+                    time.sleep(2)
+                    continue
+        except Exception as e:
+            self.logger.error(f"only_sell_up执行失败: {str(e)}")
+            return False
+        
+    
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(3): 
-            self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
-            # 计时
-            start_time = time.perf_counter()
+        try:
+            for retry in range(3): 
+                self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
+                # 计时
+                start_time = time.perf_counter()
 
-            # 点击position_sell按钮
-            self.click_position_sell_down_button()
+                # 点击position_sell按钮
+                self.click_position_sell_down_button()
 
-            # 点击卖出确认按钮
-            self.click_buy_sell_confirm_button()
+                # 点击卖出确认按钮
+                self.click_buy_sell_confirm_button()
 
-            # 点击I Accept按钮
-            if self.no_i_accept_button:
-                self.click_i_accept_button()
+                # 点击I Accept按钮
+                if self.no_i_accept_button:
+                    self.click_i_accept_button()
 
-            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
-            self.click_buy_up_button()
-            self.click_buy_button()
+                # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
+                self.click_buy_up_button()
+                self.click_buy_button()
 
-            # 计时结束
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
+                # 计时结束
+                elapsed = time.perf_counter() - start_time
+                self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
-            if self.verify_trade('Sold', 'Down')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
-                
-                self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
+                if self.verify_trade('Sold', 'Down')[0]:
+                    # 增加卖出计数
+                    self.sell_count += 1
+                    
+                    self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
 
-                break
-            else:
-                self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
-                self.driver.refresh()
-                time.sleep(2)
+                    return True
+                else:
+                    self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
+                    self.driver.refresh()
+                    time.sleep(2)
+                    continue
+        except Exception as e:
+            self.logger.error(f"only_sell_down执行失败: {str(e)}")
+            return False
+        
     
     def verify_trade(self, action_type, direction):
         """
