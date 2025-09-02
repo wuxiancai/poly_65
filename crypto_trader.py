@@ -2582,7 +2582,11 @@ class CryptoTrader:
                         self.sell_up(up_price_val, down_price_val)
                         self.sell_down(up_price_val, down_price_val)
                         
-                        self.monitor_record_up_down_price(up_price_val, down_price_val)
+                        # 添加时间间隔检查，避免频繁调用monitor_record_up_down_price
+                        current_time = time.time()
+                        if not hasattr(self, 'last_monitor_time') or (current_time - self.last_monitor_time) >= 1.0:  # 至少1秒间隔
+                            self.monitor_record_up_down_price(up_price_val, down_price_val)
+                            self.last_monitor_time = current_time
 
                     return up_price_val, down_price_val
                         
@@ -3187,14 +3191,17 @@ class CryptoTrader:
     def monitor_record_up_down_price(self, up_price, down_price):
         """实时调用，每条价格更新一次"""
         # ---- UP ----
-        if not self.tracking_up and  (99 > up_price >= 54):
+        # 只有当价格首次达到54或以上时才启动跟踪并记录日志
+        if not self.tracking_up and (99 > up_price >= 54):
             self.tracking_up = True
             self.up_price_high = up_price
             self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54, 当前价格={up_price}\033[0m")
 
         if self.tracking_up:
+            # 更新最高点，不打印日志
             if up_price > self.up_price_high:
-                self.up_price_high = up_price  # 更新最高点
+                self.up_price_high = up_price
+            # 只有当价格回落到54或以下时才记录高点并打印日志
             elif 10 < up_price <= 54:
                 # 回落到 54 或以下，记录最高点
                 record = {
@@ -3211,14 +3218,17 @@ class CryptoTrader:
                 self.up_price_high = None
 
         # ---- DOWN ----
+        # 只有当价格首次达到54或以上时才启动跟踪并记录日志
         if not self.tracking_down and (99 > down_price >= 54):
             self.tracking_down = True
             self.down_price_high = down_price
             self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54, 当前价格={down_price}\033[0m")
 
         if self.tracking_down:
+            # 更新最高点，不打印日志
             if down_price > self.down_price_high:
-                self.down_price_high = down_price  # 更新最高点
+                self.down_price_high = down_price
+            # 只有当价格回落到54或以下时才记录高点并打印日志
             elif 10 < down_price <= 54:
                 # 回落到 54 或以下，记录最高点
                 record = {
