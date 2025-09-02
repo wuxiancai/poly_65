@@ -3187,7 +3187,7 @@ class CryptoTrader:
     def monitor_record_up_down_price(self, up_price, down_price):
         """实时调用，每条价格更新一次"""
         # ---- UP ----
-        if not self.tracking_up and up_price >= 54:
+        if not self.tracking_up and  (99 > up_price >= 54):
             self.tracking_up = True
             self.up_price_high = up_price
             self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54, 当前价格={up_price}\033[0m")
@@ -3195,12 +3195,12 @@ class CryptoTrader:
         if self.tracking_up:
             if up_price > self.up_price_high:
                 self.up_price_high = up_price  # 更新最高点
-            elif up_price <= 54:
+            elif 10 < up_price <= 54:
                 # 回落到 54 或以下，记录最高点
                 record = {
                     "symbol": "UP",
                     "high": self.up_price_high,
-                    "time": datetime.datetime.now()
+                    "time": datetime.now()
                 }
                 self.history.append(record)
                 self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
@@ -3211,7 +3211,7 @@ class CryptoTrader:
                 self.up_price_high = None
 
         # ---- DOWN ----
-        if not self.tracking_down and down_price >= 54:
+        if not self.tracking_down and (99 > down_price >= 54):
             self.tracking_down = True
             self.down_price_high = down_price
             self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54, 当前价格={down_price}\033[0m")
@@ -3219,12 +3219,12 @@ class CryptoTrader:
         if self.tracking_down:
             if down_price > self.down_price_high:
                 self.down_price_high = down_price  # 更新最高点
-            elif down_price <= 54:
+            elif 10 < down_price <= 54:
                 # 回落到 54 或以下，记录最高点
                 record = {
                     "symbol": "DOWN",
                     "high": self.down_price_high,
-                    "time": datetime.datetime.now()
+                    "time": datetime.now()
                 }
                 self.history.append(record)
                 self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
@@ -3238,7 +3238,7 @@ class CryptoTrader:
         """
         检查 23:00 - 23:59 是否触发紧急平仓
         """
-        now = datetime.datetime.now()
+        now = datetime.now()
         if now.hour == 23:
             # 0.2% 阈值，可按需调整
             if abs(self.binance_rate) >= 0.002:
