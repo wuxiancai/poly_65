@@ -2593,8 +2593,7 @@ class CryptoTrader:
                 else:
                     self.logger.warning(f"价格数据异常: Up={up_price_val}, Down={down_price_val}")
                     self.yes_price_label.config(text="Up: Invalid")
-                    self.no_price_label.config(text="Down: Invalid")
-                    
+                    self.no_price_label.config(text="Down: Invalid")          
             else:
                 # 显示具体的缺失信息
                 missing_info = []
@@ -2602,8 +2601,6 @@ class CryptoTrader:
                     missing_info.append("Up价格")
                 if prices['down'] is None:
                     missing_info.append("Down价格")
-                    
-              
 
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
@@ -3191,19 +3188,19 @@ class CryptoTrader:
     def monitor_record_up_down_price(self, up_price, down_price):
         """实时调用，每条价格更新一次"""
         # ---- UP ----
-        # 只有当价格首次达到54或以上时才启动跟踪并记录日志
-        if not self.tracking_up and (99 > up_price >= 54):
+        # 只有当价格首次达到54以上时才启动跟踪并记录日志
+        if not self.tracking_up and (99 > up_price > 54):  # 修改为严格大于54
             self.tracking_up = True
             self.up_price_high = up_price
-            self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54, 当前价格={up_price}\033[0m")
+            self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54以上, 当前价格={up_price}\033[0m")
 
         if self.tracking_up:
             # 更新最高点，不打印日志
             if up_price > self.up_price_high:
                 self.up_price_high = up_price
-            # 只有当价格回落到54或以下时才记录高点并打印日志
-            elif 10 < up_price <= 54:
-                # 回落到 54 或以下，记录最高点
+            # 只有当价格回落到54以下时才记录高点并打印日志
+            elif 10 < up_price < 54:  # 修改为严格小于54
+                # 回落到 54 以下，记录最高点
                 record = {
                     "symbol": "UP",
                     "high": self.up_price_high,
@@ -3218,19 +3215,19 @@ class CryptoTrader:
                 self.up_price_high = None
 
         # ---- DOWN ----
-        # 只有当价格首次达到54或以上时才启动跟踪并记录日志
-        if not self.tracking_down and (99 > down_price >= 54):
+        # 只有当价格首次达到54以上时才启动跟踪并记录日志
+        if not self.tracking_down and (99 > down_price > 54):  # 修改为严格大于54
             self.tracking_down = True
             self.down_price_high = down_price
-            self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54, 当前价格={down_price}\033[0m")
+            self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54以上, 当前价格={down_price}\033[0m")
 
         if self.tracking_down:
             # 更新最高点，不打印日志
             if down_price > self.down_price_high:
                 self.down_price_high = down_price
-            # 只有当价格回落到54或以下时才记录高点并打印日志
-            elif 10 < down_price <= 54:
-                # 回落到 54 或以下，记录最高点
+            # 只有当价格回落到54以下时才记录高点并打印日志
+            elif 10 < down_price < 54:  # 修改为严格小于54
+                # 回落到 54 以下，记录最高点
                 record = {
                     "symbol": "DOWN",
                     "high": self.down_price_high,
