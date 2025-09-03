@@ -5082,7 +5082,7 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
             positions_sell_button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))# 只有一个持仓, 所以没有up和down,直接点sell_button
             )
             if positions_sell_button:
                 try:
@@ -5099,7 +5099,7 @@ class CryptoTrader:
         except Exception as e:
             try:
                 positions_sell_button = self._find_element_with_retry(
-                    XPathConfig.POSITION_SELL_DOWN_BUTTON,
+                    XPathConfig.POSITION_SELL_BUTTON,# 只有一个持仓, 所以没有up和down,直接点sell_button
                     timeout=1,
                     silent=True
                 )
@@ -5124,7 +5124,7 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
             positions_sell_up_button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0]))
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])) # 只有一个持仓, 所以没有up和down,直接点sell_button
             )
             if positions_sell_up_button:
                 try:
@@ -5141,7 +5141,7 @@ class CryptoTrader:
         except Exception as e:
             try:
                 positions_sell_up_button = self._find_element_with_retry(
-                    XPathConfig.POSITION_SELL_UP_BUTTON,
+                    XPathConfig.POSITION_SELL_BUTTON, # 只有一个持仓, 所以没有up和down,直接点sell_button
                     timeout=1,
                     silent=True
                 )
