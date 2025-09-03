@@ -3462,15 +3462,7 @@ class CryptoTrader:
                             self.logger.info(f"\033[34m UP价格{up_price}匹配 第{attemp+1}次尝试sell_up平仓止损 \033[0m")
                             if self.find_position_label_up():
                                 if self.only_sell_up():
-                                    #设置 DOWN1 价格为54
-                                    self.no1_price_entry.delete(0, tk.END)
-                                    self.no1_price_entry.insert(0, str(self.default_target_price))
-                                    self.no1_price_entry.configure(foreground='red')
-
-                                    # 设置 UP1 价格为 54
-                                    self.yes1_price_entry.delete(0, tk.END)
-                                    self.yes1_price_entry.insert(0, str(self.default_target_price))
-                                    self.yes1_price_entry.configure(foreground='red')
+                                    self.set_up1_down1_default_target_price()
 
                                     # 设置 UP 3 和 UP4 价格为 0
                                     self.yes3_price_entry.delete(0, tk.END)
@@ -3528,15 +3520,9 @@ class CryptoTrader:
                         
                         if self.find_position_label_down():
                             if self.only_sell_down():
-                                # 设置 UP1 价格为 54
-                                self.yes1_price_entry.delete(0, tk.END)
-                                self.yes1_price_entry.insert(0, str(self.default_target_price))
-                                self.yes1_price_entry.configure(foreground='red')
-
-                                # 设置 DOWN1 价格为 54
-                                self.no1_price_entry.delete(0, tk.END)
-                                self.no1_price_entry.insert(0, str(self.default_target_price))
-                                self.no1_price_entry.configure(foreground='red')
+                                # 设置 UP1/DOWN1 价格为默认买入价
+                                self.set_up1_down1_default_target_price()
+                                
                                 # 设置 DOWN 3 和 DOWN4 价格为 0
                                 self.no3_price_entry.delete(0, tk.END)
                                 self.no3_price_entry.insert(0, "0")
