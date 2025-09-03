@@ -3283,7 +3283,7 @@ class CryptoTrader:
                             # 设置UP4价格为默认卖出价格62
                             
                             self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, "60")
+                            self.yes4_price_entry.insert(0, "65")
                             self.yes4_price_entry.configure(foreground='red')
 
                             # 设置UP3价格为默认平仓价格 53
@@ -3355,7 +3355,7 @@ class CryptoTrader:
                             # 设置DOWN4价格为默认卖价62
                             
                             self.no4_price_entry.delete(0, tk.END)
-                            self.no4_price_entry.insert(0, "60")
+                            self.no4_price_entry.insert(0, "65")
                             self.no4_price_entry.configure(foreground='red')
                             
                             # 设置DOWN3价格为默认平仓价格 53
