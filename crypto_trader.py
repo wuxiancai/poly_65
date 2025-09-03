@@ -3441,7 +3441,7 @@ class CryptoTrader:
                                 self.no1_price_entry.delete(0, tk.END)
                                 self.no1_price_entry.insert(0, str(self.default_target_price))
                                 self.no1_price_entry.configure(foreground='red')
-
+                                break
                     elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
                         self.trading = True  # 开始交易
                         for attemp in range(3):
@@ -3457,7 +3457,7 @@ class CryptoTrader:
                                 self.yes1_price_entry.delete(0, tk.END)
                                 self.yes1_price_entry.insert(0, str(self.default_target_price))
                                 self.yes1_price_entry.configure(foreground='red')
-
+                                break
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
 
@@ -3482,11 +3482,7 @@ class CryptoTrader:
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, str(self.default_target_price))
                             self.yes1_price_entry.configure(foreground='red')
-
-                            # 设置 UP1 价格为 54
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, str(self.default_target_price))
-                            self.yes1_price_entry.configure(foreground='red')
+                            break
 
                 elif (round((down_price - down3_price), 2) <= 0) and (down3_price > 20):
                     for attemp in range(3):
@@ -3502,7 +3498,7 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
-                            
+                            break
         except Exception as e:
             self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
