@@ -3432,32 +3432,34 @@ class CryptoTrader:
                     up4_price = float(self.yes4_price_entry.get())
                     up3_price = float(self.yes3_price_entry.get())
                     # 检查up4价格匹配
-                    if (round((up_price - up4_price), 2) >= 0) and (up4_price > 20):
+                    if (4 > round((up_price - up4_price), 2) >= 0) and (up4_price > 20):
                         self.trading = True
                         for attemp in range(3):
                             self.logger.info(f"\033[34m  UP价格{up_price}匹配 第{attemp+1}次尝试sell_up平仓盈利 \033[0m")
-                            if self.only_sell_up():
-                                #设置 DOWN1 价格为54
-                                self.no1_price_entry.delete(0, tk.END)
-                                self.no1_price_entry.insert(0, str(self.default_target_price))
-                                self.no1_price_entry.configure(foreground='red')
-                                break
+                            # 查看是否有持仓
+                            if self.find_position_label_up():
+                                if self.only_sell_up():
+                                    #设置 DOWN1 价格为54
+                                    self.no1_price_entry.delete(0, tk.END)
+                                    self.no1_price_entry.insert(0, str(self.default_target_price))
+                                    self.no1_price_entry.configure(foreground='red')
+                                    break
                     elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
                         self.trading = True  # 开始交易
                         for attemp in range(3):
                             self.logger.info(f"\033[34m UP价格{up_price}匹配 第{attemp+1}次尝试sell_up平仓止损 \033[0m")
-                            
-                            if self.only_sell_up():
-                                #设置 DOWN1 价格为54
-                                self.no1_price_entry.delete(0, tk.END)
-                                self.no1_price_entry.insert(0, str(self.default_target_price))
-                                self.no1_price_entry.configure(foreground='red')
+                            if self.find_position_label_up():
+                                if self.only_sell_up():
+                                    #设置 DOWN1 价格为54
+                                    self.no1_price_entry.delete(0, tk.END)
+                                    self.no1_price_entry.insert(0, str(self.default_target_price))
+                                    self.no1_price_entry.configure(foreground='red')
 
-                                # 设置 UP1 价格为 54
-                                self.yes1_price_entry.delete(0, tk.END)
-                                self.yes1_price_entry.insert(0, str(self.default_target_price))
-                                self.yes1_price_entry.configure(foreground='red')
-                                break
+                                    # 设置 UP1 价格为 54
+                                    self.yes1_price_entry.delete(0, tk.END)
+                                    self.yes1_price_entry.insert(0, str(self.default_target_price))
+                                    self.yes1_price_entry.configure(foreground='red')
+                                    break
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
 
@@ -3474,31 +3476,36 @@ class CryptoTrader:
 
                 # 检查down4价格匹配
                 if (round((down_price - down4_price), 2) >= 0) and (down4_price > 20):
+                    self.trading = True  # 开始交易
                     for attemp in range(3):
                         self.logger.info(f"\033[34m DOWN价格{down_price}匹配 第{attemp+1}次尝试sell_down平仓盈利 \033[0m")
-                        self.trading = True  # 开始交易
-                        if self.only_sell_down():
-                            # 设置 UP1 价格为 54
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, str(self.default_target_price))
-                            self.yes1_price_entry.configure(foreground='red')
-                            break
+                        
+                        if self.find_position_label_down():
+
+                            if self.only_sell_down():
+                                # 设置 UP1 价格为 54
+                                self.yes1_price_entry.delete(0, tk.END)
+                                self.yes1_price_entry.insert(0, str(self.default_target_price))
+                                self.yes1_price_entry.configure(foreground='red')
+                                break
 
                 elif (round((down_price - down3_price), 2) <= 0) and (down3_price > 20):
+                    self.trading = True  # 开始交易
                     for attemp in range(3):
                         self.logger.info(f"\033[34m DOWN价格{down_price}匹配 第{attemp+1}次尝试sell_down平仓止损 \033[0m")
-                        self.trading = True  # 开始交易
-                        if self.only_sell_down():
-                            # 设置 UP1 价格为 54
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, str(self.default_target_price))
-                            self.yes1_price_entry.configure(foreground='red')
+                        
+                        if self.find_position_label_down():
+                            if self.only_sell_down():
+                                # 设置 UP1 价格为 54
+                                self.yes1_price_entry.delete(0, tk.END)
+                                self.yes1_price_entry.insert(0, str(self.default_target_price))
+                                self.yes1_price_entry.configure(foreground='red')
 
-                            # 设置 DOWN1 价格为 54
-                            self.no1_price_entry.delete(0, tk.END)
-                            self.no1_price_entry.insert(0, str(self.default_target_price))
-                            self.no1_price_entry.configure(foreground='red')
-                            break
+                                # 设置 DOWN1 价格为 54
+                                self.no1_price_entry.delete(0, tk.END)
+                                self.no1_price_entry.insert(0, str(self.default_target_price))
+                                self.no1_price_entry.configure(foreground='red')
+                                break
         except Exception as e:
             self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
