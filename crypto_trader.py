@@ -2609,8 +2609,8 @@ class CryptoTrader:
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
                         self.First_trade(up_price_val, down_price_val)
-                        self.sell_up(up_price_val, down_price_val)
-                        self.sell_down(up_price_val, down_price_val)
+                        self.sell_up(up_price_val)
+                        self.sell_down(down_price_val)
                         
                         # 添加时间间隔检查，避免频繁调用monitor_record_up_down_price
                         current_time = time.time()
@@ -3424,7 +3424,7 @@ class CryptoTrader:
             self.trading = False
     
 
-    def sell_up(self, up_price, down_price):
+    def sell_up(self, up_price):
         """卖出UP"""
         try:
             if up_price is not None and (up_price > 10):  
@@ -3489,7 +3489,7 @@ class CryptoTrader:
         finally:
             self.trading = False
 
-    def sell_down(self, up_price, down_price):
+    def sell_down(self, down_price):
         """卖出DOWN"""  
         try:
             if down_price is not None and (down_price > 10):  
