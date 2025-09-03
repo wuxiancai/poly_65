@@ -3323,7 +3323,7 @@ class CryptoTrader:
                             # 设置UP3价格为默认平仓价格 53
                             self.yes3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
                             self.yes3_price_entry.delete(0, tk.END)
-                            self.yes3_price_entry.insert(0, "53")
+                            self.yes3_price_entry.insert(0, "52")
                             self.yes3_price_entry.configure(foreground='red')
                             
                             # 自动改变交易次数
@@ -3384,7 +3384,7 @@ class CryptoTrader:
                             # 设置DOWN3价格为默认平仓价格 53
                             self.no3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
                             self.no3_price_entry.delete(0, tk.END)
-                            self.no3_price_entry.insert(0, "53")
+                            self.no3_price_entry.insert(0, "52")
                             self.no3_price_entry.configure(foreground='red')
                             
                             # 自动改变交易次数
@@ -5063,9 +5063,11 @@ class CryptoTrader:
 
         except Exception as e:
             try:
-                buy_confirm_button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-            )
+                buy_confirm_button = self._find_element_with_retry(
+                    XPathConfig.BUY_CONFIRM_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
                 if buy_confirm_button:
                     buy_confirm_button.click()
                     elapsed = time.perf_counter() - start_time
@@ -5079,7 +5081,6 @@ class CryptoTrader:
         # 点击position_sell_down按钮
         try:
             start_time = time.perf_counter()
-
             positions_sell_button = WebDriverWait(self.driver, 0.2).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
             )
@@ -5097,9 +5098,11 @@ class CryptoTrader:
         
         except Exception as e:
             try:
-                positions_sell_button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
-            )
+                positions_sell_button = self._find_element_with_retry(
+                    XPathConfig.POSITION_SELL_DOWN_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
                 if positions_sell_button:
                     try:
                         positions_sell_button.click()
@@ -5120,7 +5123,6 @@ class CryptoTrader:
         # 点击position_sell_up按钮
         try:
             start_time = time.perf_counter()
-
             positions_sell_up_button = WebDriverWait(self.driver, 0.2).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0]))
             )
@@ -5254,9 +5256,11 @@ class CryptoTrader:
         except (NoSuchElementException, StaleElementReferenceException):
             
             try:
-                button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_BUTTON[0]))
-            )
+                button = self._find_element_with_retry(
+                    XPathConfig.BUY_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
                 if button:
                     try:
                         button.click()
@@ -5297,9 +5301,11 @@ class CryptoTrader:
         except (NoSuchElementException, StaleElementReferenceException):
             
             try:
-                button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_UP_BUTTON[0]))
-            )
+                button = self._find_element_with_retry(
+                    XPathConfig.BUY_UP_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
                 if button:
                     try:
                         button.click()
@@ -5341,9 +5347,11 @@ class CryptoTrader:
         except (NoSuchElementException, StaleElementReferenceException):
             
             try:
-                button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0]))
-            )
+                button = self._find_element_with_retry(
+                    XPathConfig.BUY_DOWN_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
                 if button:
                     try:
                         button.click()
