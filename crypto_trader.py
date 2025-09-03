@@ -259,10 +259,12 @@ class TradeStatsManager:
     
     def record_trade(self, trade_type, price):
         """记录交易（兼容性方法）"""
-        # 获取当前时间并调用add_trade_record
-        current_time = datetime.now()
-        self.add_trade_record(current_time)
-        # 日志记录已由Logger类统一处理，避免重复输出
+        # 只记录买入交易，不记录卖出
+        if trade_type == "BUY":
+            # 获取当前时间并调用add_trade_record
+            current_time = datetime.now()
+            self.add_trade_record(current_time)
+            # 日志记录已由Logger类统一处理，避免重复输出
         return True
 
 
@@ -270,60 +272,24 @@ class LogMonitor(FileSystemEventHandler):
     """
     日志文件监听器
     监听日志文件变化，解析交易成功事件
+    注意：不再通过日志监控记录交易统计，避免重复记录
     """
     
     def __init__(self, stats_manager, log_file_pattern=r'.*\.log$'):
         self.stats_manager = stats_manager
         self.log_file_pattern = re.compile(log_file_pattern)
-        self.trade_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*交易验证成功.*Bought')
+        # 不再使用交易模式匹配，避免重复记录
+        # self.trade_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*交易验证成功.*Bought')
         
     def on_modified(self, event):
         """文件修改事件处理"""
-        if event.is_directory:
-            return
-            
-        if self.log_file_pattern.search(event.src_path):
-            self._parse_log_file(event.src_path)
+        # 不再通过日志监控记录交易统计，避免重复记录
+        pass
     
     def _parse_log_file(self, file_path):
         """解析日志文件"""
-        try:
-            # 尝试多种编码方式读取文件
-            encodings = ['utf-8', 'gbk', 'gb2312', 'latin-1']
-            content = None
-            
-            for encoding in encodings:
-                try:
-                    with open(file_path, 'r', encoding=encoding) as f:
-                        # 只读取文件末尾的新内容
-                        f.seek(0, 2)  # 移动到文件末尾
-                        file_size = f.tell()
-                        
-                        # 读取最后1KB的内容（避免读取整个文件）
-                        read_size = min(1024, file_size)
-                        f.seek(max(0, file_size - read_size))
-                        content = f.read()
-                        break  # 成功读取，跳出循环
-                except UnicodeDecodeError:
-                    continue  # 尝试下一种编码
-            
-            if content is None:
-                logging.error(f"无法使用任何编码读取日志文件: {file_path}")
-                return
-                
-            # 查找交易成功记录
-            matches = self.trade_pattern.findall(content)
-            for timestamp_str in matches:
-                try:
-                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                    self.stats_manager.add_trade_record(timestamp)
-                except ValueError:
-                    continue
-                        
-        except IOError as e:
-            logging.error(f"读取日志文件失败 {file_path}: {e}")
-        except Exception as e:
-            logging.error(f"解析日志文件时发生未知错误 {file_path}: {e}")
+        # 不再通过日志监控记录交易统计，避免重复记录
+        pass
 
 
 class StatusDataManager:
