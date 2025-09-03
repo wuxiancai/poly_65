@@ -3413,10 +3413,10 @@ class CryptoTrader:
                                     # 设置 UP 3 和 UP4 价格为 0
                                     self.yes3_price_entry.delete(0, tk.END)
                                     self.yes3_price_entry.insert(0, "0")
-                                    self.yes3_price_entry.configure(foreground='red')
+                                    self.yes3_price_entry.configure(foreground='black')
                                     self.yes4_price_entry.delete(0, tk.END)
                                     self.yes4_price_entry.insert(0, "0")
-                                    self.yes4_price_entry.configure(foreground='red')
+                                    self.yes4_price_entry.configure(foreground='black')
                                     break
                             else:
                                 
@@ -3433,10 +3433,10 @@ class CryptoTrader:
                                     # 设置 UP 3 和 UP4 价格为 0
                                     self.yes3_price_entry.delete(0, tk.END)
                                     self.yes3_price_entry.insert(0, "0")
-                                    self.yes3_price_entry.configure(foreground='red')
+                                    self.yes3_price_entry.configure(foreground='black')
                                     self.yes4_price_entry.delete(0, tk.END)
                                     self.yes4_price_entry.insert(0, "0")
-                                    self.yes4_price_entry.configure(foreground='red')
+                                    self.yes4_price_entry.configure(foreground='black')
                                     break
                             else:
                                 
@@ -3468,13 +3468,14 @@ class CryptoTrader:
                                 self.yes1_price_entry.delete(0, tk.END)
                                 self.yes1_price_entry.insert(0, str(self.default_target_price))
                                 self.yes1_price_entry.configure(foreground='red')
+
                                 # 设置 DOWN 3 和 DOWN4 价格为 0
                                 self.no3_price_entry.delete(0, tk.END)
                                 self.no3_price_entry.insert(0, "0")
-                                self.no3_price_entry.configure(foreground='red')
+                                self.no3_price_entry.configure(foreground='black')
                                 self.no4_price_entry.delete(0, tk.END)
                                 self.no4_price_entry.insert(0, "0")
-                                self.no4_price_entry.configure(foreground='red')
+                                self.no4_price_entry.configure(foreground='black')
                                 break
                         else:
                             self.logger.info("❌ 无持仓,跳过")
@@ -3492,10 +3493,10 @@ class CryptoTrader:
                                 # 设置 DOWN 3 和 DOWN4 价格为 0
                                 self.no3_price_entry.delete(0, tk.END)
                                 self.no3_price_entry.insert(0, "0")
-                                self.no3_price_entry.configure(foreground='red')
+                                self.no3_price_entry.configure(foreground='black')
                                 self.no4_price_entry.delete(0, tk.END)
                                 self.no4_price_entry.insert(0, "0")
-                                self.no4_price_entry.configure(foreground='red')
+                                self.no4_price_entry.configure(foreground='black')
                                 break
                         else:
                             self.logger.info("❌ 无持仓,跳过")
