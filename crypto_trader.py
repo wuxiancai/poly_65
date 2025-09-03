@@ -3443,7 +3443,19 @@ class CryptoTrader:
                                     self.no1_price_entry.delete(0, tk.END)
                                     self.no1_price_entry.insert(0, str(self.default_target_price))
                                     self.no1_price_entry.configure(foreground='red')
+
+                                    # 设置 UP 3 和 UP4 价格为 0
+                                    self.yes3_price_entry.delete(0, tk.END)
+                                    self.yes3_price_entry.insert(0, "0")
+                                    self.yes3_price_entry.configure(foreground='red')
+                                    self.yes4_price_entry.delete(0, tk.END)
+                                    self.yes4_price_entry.insert(0, "0")
+                                    self.yes4_price_entry.configure(foreground='red')
                                     break
+                            else:
+                                self.logger.info("❌ 无持仓,跳过")
+                                break
+
                     elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
                         self.trading = True  # 开始交易
                         for attemp in range(3):
@@ -3459,7 +3471,18 @@ class CryptoTrader:
                                     self.yes1_price_entry.delete(0, tk.END)
                                     self.yes1_price_entry.insert(0, str(self.default_target_price))
                                     self.yes1_price_entry.configure(foreground='red')
+
+                                    # 设置 UP 3 和 UP4 价格为 0
+                                    self.yes3_price_entry.delete(0, tk.END)
+                                    self.yes3_price_entry.insert(0, "0")
+                                    self.yes3_price_entry.configure(foreground='red')
+                                    self.yes4_price_entry.delete(0, tk.END)
+                                    self.yes4_price_entry.insert(0, "0")
+                                    self.yes4_price_entry.configure(foreground='red')
                                     break
+                            else:
+                                self.logger.info("❌ 无持仓,跳过")
+                                break
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
 
@@ -3487,8 +3510,17 @@ class CryptoTrader:
                                 self.yes1_price_entry.delete(0, tk.END)
                                 self.yes1_price_entry.insert(0, str(self.default_target_price))
                                 self.yes1_price_entry.configure(foreground='red')
+                                # 设置 DOWN 3 和 DOWN4 价格为 0
+                                self.no3_price_entry.delete(0, tk.END)
+                                self.no3_price_entry.insert(0, "0")
+                                self.no3_price_entry.configure(foreground='red')
+                                self.no4_price_entry.delete(0, tk.END)
+                                self.no4_price_entry.insert(0, "0")
+                                self.no4_price_entry.configure(foreground='red')
                                 break
-
+                        else:
+                            self.logger.info("❌ 无持仓,跳过")
+                            break
                 elif (round((down_price - down3_price), 2) <= 0) and (down3_price > 20):
                     self.trading = True  # 开始交易
                     for attemp in range(3):
@@ -3505,7 +3537,17 @@ class CryptoTrader:
                                 self.no1_price_entry.delete(0, tk.END)
                                 self.no1_price_entry.insert(0, str(self.default_target_price))
                                 self.no1_price_entry.configure(foreground='red')
+                                # 设置 DOWN 3 和 DOWN4 价格为 0
+                                self.no3_price_entry.delete(0, tk.END)
+                                self.no3_price_entry.insert(0, "0")
+                                self.no3_price_entry.configure(foreground='red')
+                                self.no4_price_entry.delete(0, tk.END)
+                                self.no4_price_entry.insert(0, "0")
+                                self.no4_price_entry.configure(foreground='red')
                                 break
+                        else:
+                            self.logger.info("❌ 无持仓,跳过")
+                            break
         except Exception as e:
             self.logger.error(f"sell_down执行失败: {str(e)}")
         finally:
