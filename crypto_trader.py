@@ -3315,13 +3315,13 @@ class CryptoTrader:
                             self.reset_up_down_price_0(1)
                             
                             # 设置UP4价格为默认卖出价格62
-                            self.yes4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
+                            
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, "60")
                             self.yes4_price_entry.configure(foreground='red')
 
                             # 设置UP3价格为默认平仓价格 53
-                            self.yes3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
+                            
                             self.yes3_price_entry.delete(0, tk.END)
                             self.yes3_price_entry.insert(0, "52")
                             self.yes3_price_entry.configure(foreground='red')
@@ -3376,13 +3376,13 @@ class CryptoTrader:
                             self.reset_up_down_price_0(1)
                             
                             # 设置DOWN4价格为默认卖价62
-                            self.no4_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
+                            
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, "60")
                             self.no4_price_entry.configure(foreground='red')
                             
                             # 设置DOWN3价格为默认平仓价格 53
-                            self.no3_price_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
+                            
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, "52")
                             self.no3_price_entry.configure(foreground='red')
