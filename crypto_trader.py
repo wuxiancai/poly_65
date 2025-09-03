@@ -3453,7 +3453,7 @@ class CryptoTrader:
                                     self.yes4_price_entry.configure(foreground='red')
                                     break
                             else:
-                                self.logger.info("❌ 无持仓,跳过")
+                                
                                 break
 
                     elif (round((up_price - up3_price), 2) <= 0) and (up3_price > 20):
@@ -3481,7 +3481,7 @@ class CryptoTrader:
                                     self.yes4_price_entry.configure(foreground='red')
                                     break
                             else:
-                                self.logger.info("❌ 无持仓,跳过")
+                                
                                 break
         except Exception as e:
             self.logger.error(f"sell_up执行失败: {str(e)}")
