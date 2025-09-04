@@ -3157,7 +3157,7 @@ class CryptoTrader:
         no_entry.configure(foreground='black')
 
     def save_high_point_to_csv(self, record):
-        """将高点记录保存到CSV文件"""
+        """将高点记录保存到CSV文件（保留兼容性）"""
         csv_filename = "high_points_history.csv"
         file_exists = os.path.exists(csv_filename)
         
@@ -3180,65 +3180,121 @@ class CryptoTrader:
                 
         except Exception as e:
             self.logger.error(f"保存高点记录到CSV失败: {e}")
+    
+    def save_price_record_to_csv(self, record):
+        """将价格记录保存到CSV文件"""
+        csv_filename = "price_monitor_history.csv"
+        file_exists = os.path.exists(csv_filename)
+        
+        try:
+            with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['symbol', 'event', 'price', 'time', '最高价', '最高价时间']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                # 如果文件不存在，写入表头
+                if not file_exists:
+                    writer.writeheader()
+                
+                # 格式化记录
+                csv_record = {
+                    'symbol': record['symbol'],
+                    'event': record['event'],
+                    'price': record['price'],
+                    'time': record['time'].strftime('%Y-%m-%d %H:%M:%S'),
+                    '最高价': record.get('最高价', ''),
+                    '最高价时间': record.get('最高价时间', '').strftime('%Y-%m-%d %H:%M:%S') if record.get('最高价时间') else ''
+                }
+                writer.writerow(csv_record)
+                
+        except Exception as e:
+            self.logger.error(f"保存价格记录到CSV失败: {e}")
 
     def monitor_record_up_down_price(self, up_price, down_price):
-        """实时调用，每条价格更新一次"""
+        """实时调用，每条价格更新一次
+        新逻辑：
+        1. 当UP/DOWN价格达到54时，记录一次价格及时间
+        2. 价格继续上涨到最高点后开始下跌
+        3. 一旦跌破47，记录跌破时的价格和时间
+        4. 如果跌破47后又反弹，再次超过54后，又记录一次价格和时间
+        """
         # ---- UP ----
-        # 只有当价格首次达到54以上时才启动跟踪并记录日志
-        if not self.tracking_up and (99 > up_price > 54):  # 修改为严格大于54
+        # 当价格达到54时记录
+        if not self.tracking_up and up_price >= 54:
             self.tracking_up = True
             self.up_price_high = up_price
-            self.up_price_high_time = datetime.now()  # 记录最高点时间
-            self.logger.info(f"\033[34m[启动跟踪] UP 价格到达 54以上, 当前价格={up_price}\033[0m")
+            self.up_price_high_time = datetime.now()
+            # 记录达到54的价格和时间
+            record_54 = {
+                "symbol": "UP",
+                "event": "达到54",
+                "price": up_price,
+                "time": self.up_price_high_time
+            }
+            self.history.append(record_54)
+            self.logger.info(f"\033[34m[UP达到54] 价格={up_price}, 时间={self.up_price_high_time.strftime('%H:%M:%S')}\033[0m")
+            self.save_price_record_to_csv(record_54)
 
         if self.tracking_up:
-            # 更新最高点，不打印日志
+            # 更新最高点
             if up_price > self.up_price_high:
                 self.up_price_high = up_price
-                self.up_price_high_time = datetime.now()  # 更新最高点时间
-            # 只有当价格回落到54以下时才记录高点并打印日志
-            elif 10 < up_price < 54:  # 修改为严格小于54
-                # 回落到 54 以下，记录最高点
-                record = {
+                self.up_price_high_time = datetime.now()
+            # 当价格跌破47时记录
+            elif up_price < 47:
+                # 记录跌破47的价格和时间
+                record_47 = {
                     "symbol": "UP",
-                    "high": self.up_price_high,  # 使用记录的最高价格
-                    "time": self.up_price_high_time  # 使用记录的最高点时间
+                    "event": "跌破47",
+                    "price": up_price,
+                    "time": datetime.now(),
+                    "最高价": self.up_price_high,
+                    "最高价时间": self.up_price_high_time
                 }
-                self.history.append(record)
-                self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
-                # 保存到CSV文件
-                self.save_high_point_to_csv(record)
-                # 重置 UP 跟踪
+                self.history.append(record_47)
+                self.logger.info(f"\033[34m[UP跌破47] 当前价格={up_price}, 最高价={self.up_price_high}, 时间={record_47['time'].strftime('%H:%M:%S')}\033[0m")
+                self.save_price_record_to_csv(record_47)
+                # 重置UP跟踪
                 self.tracking_up = False
                 self.up_price_high = None
                 self.up_price_high_time = None
 
         # ---- DOWN ----
-        # 只有当价格首次达到54以上时才启动跟踪并记录日志
-        if not self.tracking_down and (99 > down_price > 54):  # 修改为严格大于54
+        # 当价格达到54时记录
+        if not self.tracking_down and down_price >= 54:
             self.tracking_down = True
             self.down_price_high = down_price
-            self.down_price_high_time = datetime.now()  # 记录最高点时间
-            self.logger.info(f"\033[34m[启动跟踪] DOWN 价格到达 54以上, 当前价格={down_price}\033[0m")
+            self.down_price_high_time = datetime.now()
+            # 记录达到54的价格和时间
+            record_54 = {
+                "symbol": "DOWN",
+                "event": "达到54",
+                "price": down_price,
+                "time": self.down_price_high_time
+            }
+            self.history.append(record_54)
+            self.logger.info(f"\033[34m[DOWN达到54] 价格={down_price}, 时间={self.down_price_high_time.strftime('%H:%M:%S')}\033[0m")
+            self.save_price_record_to_csv(record_54)
 
         if self.tracking_down:
-            # 更新最高点，不打印日志
+            # 更新最高点
             if down_price > self.down_price_high:
                 self.down_price_high = down_price
-                self.down_price_high_time = datetime.now()  # 更新最高点时间
-            # 只有当价格回落到54以下时才记录高点并打印日志
-            elif 10 < down_price < 54:  # 修改为严格小于54
-                # 回落到 54 以下，记录最高点
-                record = {
+                self.down_price_high_time = datetime.now()
+            # 当价格跌破47时记录
+            elif down_price < 47:
+                # 记录跌破47的价格和时间
+                record_47 = {
                     "symbol": "DOWN",
-                    "high": self.down_price_high,  # 使用记录的最高价格
-                    "time": self.down_price_high_time  # 使用记录的最高点时间
+                    "event": "跌破47",
+                    "price": down_price,
+                    "time": datetime.now(),
+                    "最高价": self.down_price_high,
+                    "最高价时间": self.down_price_high_time
                 }
-                self.history.append(record)
-                self.logger.info(f"\033[34m[记录高点] {record}\033[0m")
-                # 保存到CSV文件
-                self.save_high_point_to_csv(record)
-                # 重置 DOWN 跟踪
+                self.history.append(record_47)
+                self.logger.info(f"\033[34m[DOWN跌破47] 当前价格={down_price}, 最高价={self.down_price_high}, 时间={record_47['time'].strftime('%H:%M:%S')}\033[0m")
+                self.save_price_record_to_csv(record_47)
+                # 重置DOWN跟踪
                 self.tracking_down = False
                 self.down_price_high = None
                 self.down_price_high_time = None
