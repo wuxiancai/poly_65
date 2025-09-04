@@ -1865,7 +1865,7 @@ class CryptoTrader:
         self.set_amount_button['state'] = 'normal'
 
         # 2.启动登录检查
-        self.login_check_timer = self.root.after(6000, self.start_login_monitoring)
+        #self.login_check_timer = self.root.after(6000, self.start_login_monitoring)
 
         # 3.启动URL监控
         self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
