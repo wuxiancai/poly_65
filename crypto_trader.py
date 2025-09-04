@@ -1865,10 +1865,10 @@ class CryptoTrader:
         self.set_amount_button['state'] = 'normal'
 
         # 2.启动登录检查
-        self.login_check_timer = self.root.after(4000, self.start_login_monitoring)
+        self.login_check_timer = self.root.after(6000, self.start_login_monitoring)
 
         # 3.启动URL监控
-        self.url_check_timer = self.root.after(8000, self.start_url_monitoring)
+        self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
 
         # 4.启动零点 CASH 监控
         self.root.after(3000, self.schedule_get_zero_time_cash)
@@ -2908,7 +2908,7 @@ class CryptoTrader:
                 except Exception:
                     login_button = None
                 
-            if login_button:
+            if login_button and login_button is not None:
                 self.logger.info("✅ 已发现登录按钮,尝试登录")
                 self.stop_url_monitoring()
                 self.stop_refresh_page()
@@ -2919,15 +2919,16 @@ class CryptoTrader:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ 登录按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", login_button)
-                time.sleep(0.3)
+                time.sleep(0.5)
                 
                 # 查找Google登录按钮
+                google_login_button = None
                 try:
                     google_login_button = self.driver.find_element(By.XPATH, XPathConfig.LOGIN_WITH_GOOGLE_BUTTON[0])
                 except (NoSuchElementException, StaleElementReferenceException):
-                    google_login_button = self._find_element_with_retry(XPathConfig.LOGIN_WITH_GOOGLE_BUTTON, timeout=2, silent=True)
+                    google_login_button = self._find_element_with_retry(XPathConfig.LOGIN_WITH_GOOGLE_BUTTON, timeout=1, silent=True)
                     
-                if google_login_button:
+                if google_login_button and google_login_button is not None:
                     try:
                         google_login_button.click()
                         self.logger.info("✅ 已点击Google登录按钮")
@@ -2939,7 +2940,7 @@ class CryptoTrader:
                         self.logger.info(f"❌ 点击Google登录按钮失败,使用坐标法点击")
                         self.use_x_y_click_google_login_button()
                     
-                    # 不再固定等待15秒,而是循环检测CASH值
+                    # 不再固定等待20秒,而是循环检测CASH值
                     cash_value = None
                     
                     for attempt in range(20):
