@@ -19,6 +19,23 @@ if ! command -v docker-compose &> /dev/null; then
     sudo apt install -y docker-compose
 fi
 
+# 配置 Docker 镜像加速器
+echo "==> 配置 Docker 镜像加速器..."
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<EOF
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ]
+}
+EOF
+
+# 重启 Docker 服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
 # 创建工作目录
 CLASH_DIR="/root/clash"
 mkdir -p "$CLASH_DIR"
@@ -71,7 +88,7 @@ chmod +x "$CLASH_DIR/update.sh"
 cat > "$CLASH_DIR/docker-compose.yml" <<'EOF'
 services:
   sing-box:
-    image: ghcr.io/sagernet/sing-box:latest
+    image: sagernet/sing-box:latest
     container_name: sing-box
     restart: always
     volumes:
