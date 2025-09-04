@@ -8609,6 +8609,25 @@ SHARES: {shares}
             padding: 20px;
             color: #6c757d;
         }
+        
+        .price-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 800px) {
+            .price-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 500px) {
+            .price-stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -8633,7 +8652,7 @@ SHARES: {shares}
                 <canvas id="tradeChart" width="800" height="400"></canvas>
             </div>
             
-            <div class="stats-grid">
+            <div class="price-stats-grid">
                 <div class="stats-card">
                     <h3>总次数</h3>
                     <div class="stats-value" id="totalTrades">0</div>
@@ -8664,6 +8683,57 @@ SHARES: {shares}
                 </div>
             </div>
         </div>
+        
+        <!-- 价格达到54分析模块 - 独立容器 -->
+        <div class="header" style="margin-top: 30px;">
+            <h1 style="background: linear-gradient(135deg, #ff6b6b, #4ecdc4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">价格达到54分析</h1>
+        </div>
+        
+        <div class="content">
+            <div class="chart-container">
+                <div id="priceLoadingIndicator" class="loading" style="display: none;">正在加载价格数据...</div>
+                <canvas id="priceChart" width="800" height="250"></canvas>
+            </div>
+            
+            <div class="price-stats-grid">
+                <div class="stats-card">
+                    <h3>UP达到54次数</h3>
+                    <div class="stats-value" id="upReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>DOWN达到54次数</h3>
+                    <div class="stats-value" id="downReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>总达到54次数</h3>
+                    <div class="stats-value" id="totalReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>最活跃时段</h3>
+                    <div class="stats-value" id="pricePeakHour">--:--</div>
+                </div>
+                <div class="stats-card">
+                    <h3>平均每小时</h3>
+                    <div class="stats-value" id="priceAvgPerHour">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>凌晨(0-6点)</h3>
+                    <div class="stats-value" id="priceEarlyMorningCount">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午(6-16点)</h3>
+                    <div class="stats-value" id="priceMorningCount">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>下午(16-22点)</h3>
+                    <div class="stats-value" id="priceAfternoonCount">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>晚上(22-24点)</h3>
+                    <div class="stats-value" id="priceEveningCount">0</div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -8683,8 +8753,11 @@ SHARES: {shares}
         
         // 初始化图表
         function initChart() {
+            // 如果图表已存在，先销毁它
+            if (tradeChart) {
+                tradeChart.destroy();
+            }
             const ctx = document.getElementById('tradeChart').getContext('2d');
-            
             tradeChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -8756,6 +8829,118 @@ SHARES: {shares}
                 document.getElementById('loadingIndicator').textContent = '加载失败';
             }
         }
+        
+        // 价格分析相关变量
+        let priceChart;
+        
+        // 初始化价格图表
+        function initPriceChart() {
+            // 如果图表已存在，先销毁它
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+                    datasets: [{
+                        label: 'UP达到54',
+                        data: new Array(24).fill(0),
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'DOWN达到54',
+                        data: new Array(24).fill(0),
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新价格图表数据
+        async function updatePriceChart() {
+            const dateInput = document.getElementById('dateInput').value;
+            
+            if (!dateInput) return;
+            
+            document.getElementById('priceLoadingIndicator').style.display = 'block';
+            document.getElementById('priceChart').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/price_stats?date=${dateInput}`);
+                const data = await response.json();
+                
+                // 更新图表
+                if (data.up_hourly_data && data.down_hourly_data) {
+                    priceChart.data.datasets[0].data = data.up_hourly_data;
+                    priceChart.data.datasets[1].data = data.down_hourly_data;
+                    priceChart.update();
+                }
+                
+                // 更新统计
+                document.getElementById('upReach54Count').textContent = data.up_reach_54_count || 0;
+                document.getElementById('downReach54Count').textContent = data.down_reach_54_count || 0;
+                document.getElementById('totalReach54Count').textContent = data.total_reach_54_count || 0;
+                document.getElementById('pricePeakHour').textContent = data.peak_hour || '--:--';
+                document.getElementById('priceAvgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
+                
+                const periods = data.period_stats || {};
+                document.getElementById('priceEarlyMorningCount').textContent = periods.early_morning?.count || 0;
+                document.getElementById('priceMorningCount').textContent = periods.morning?.count || 0;
+                document.getElementById('priceAfternoonCount').textContent = periods.afternoon?.count || 0;
+                document.getElementById('priceEveningCount').textContent = periods.evening?.count || 0;
+                
+                document.getElementById('priceLoadingIndicator').style.display = 'none';
+                document.getElementById('priceChart').style.display = 'block';
+                
+            } catch (error) {
+                console.error('获取价格数据失败:', error);
+                document.getElementById('priceLoadingIndicator').textContent = '加载失败';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            
+            // 初始化图表
+            initChart();
+            initPriceChart();
+            
+            // 加载数据
+            updateChart();
+            updatePriceChart();
+            
+            // 设置定时刷新
+            setInterval(() => {
+                updateChart();
+                updatePriceChart();
+            }, 5 * 60 * 1000); // 每5分钟刷新一次
+        });
     </script>
 </body>
 </html>
