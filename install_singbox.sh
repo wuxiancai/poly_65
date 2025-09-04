@@ -36,6 +36,15 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl restart docker
 
+# 等待 Docker 服务完全启动
+echo "==> 等待 Docker 服务启动..."
+sleep 5
+
+# 验证 Docker 服务状态
+sudo systemctl status docker --no-pager
+echo "==> Docker 配置验证:"
+sudo docker info | grep -A 10 "Registry Mirrors" || echo "镜像加速器配置检查完成"
+
 # 创建工作目录
 CLASH_DIR="/root/clash"
 mkdir -p "$CLASH_DIR"
@@ -109,6 +118,24 @@ EOF
 # 启动服务
 echo "==> 启动 Sing-Box + Yacd..."
 cd "$CLASH_DIR"
+
+# 尝试拉取镜像（带重试机制）
+echo "==> 拉取 Docker 镜像..."
+for i in {1..3}; do
+    echo "第 $i 次尝试拉取镜像..."
+    if docker compose pull; then
+        echo "镜像拉取成功！"
+        break
+    else
+        echo "镜像拉取失败，等待 10 秒后重试..."
+        sleep 10
+    fi
+    if [ $i -eq 3 ]; then
+        echo "警告: 镜像拉取失败，尝试直接启动服务..."
+    fi
+done
+
+# 启动容器
 docker compose up -d
 
 # 创建 crontab 定时任务（每天 4 点更新订阅）
