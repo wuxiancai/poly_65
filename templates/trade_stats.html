@@ -188,11 +188,58 @@
                     <div class="stats-value" id="eveningTrades">0</div>
                 </div>
             </div>
+            
+            <!-- 价格达到54分析模块 -->
+            <div class="chart-container" style="margin-top: 30px;">
+                <h2 style="color: #007bff; margin-bottom: 15px; text-align: center;">价格达到54分析</h2>
+                <div id="priceLoadingIndicator" class="loading" style="display: none;">正在加载价格数据...</div>
+                <canvas id="priceChart" width="800" height="400"></canvas>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>UP达到54次数</h3>
+                    <div class="stats-value" id="upReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>DOWN达到54次数</h3>
+                    <div class="stats-value" id="downReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>总达到54次数</h3>
+                    <div class="stats-value" id="totalReach54Count">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>最活跃时段</h3>
+                    <div class="stats-value" id="pricePeakHour">--:--</div>
+                </div>
+                <div class="stats-card">
+                    <h3>平均每小时</h3>
+                    <div class="stats-value" id="priceAvgPerHour">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>凌晨(0-8点)</h3>
+                    <div class="stats-value" id="priceEarlyMorning">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午(8-16点)</h3>
+                    <div class="stats-value" id="priceMorning">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>下午(16-22点)</h3>
+                    <div class="stats-value" id="priceAfternoon">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>晚上(22-24点)</h3>
+                    <div class="stats-value" id="priceEvening">0</div>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
         let tradeChart;
+        let priceChart;
         
         // 注册datalabels插件
         Chart.register(ChartDataLabels);
@@ -203,10 +250,15 @@
             document.getElementById('dateInput').value = today;
             
             initChart();
+            initPriceChart();
             updateChart();
+            updatePriceChart();
             
             // 每5分钟自动刷新
-            setInterval(updateChart, 300000);
+            setInterval(() => {
+                updateChart();
+                updatePriceChart();
+            }, 300000);
         });
         
         // 初始化图表
@@ -231,6 +283,59 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            },
+                            color: '#333',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 初始化价格图表
+        function initPriceChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            priceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+                    datasets: [{
+                        label: 'UP达到54次数',
+                        data: new Array(24).fill(0),
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'DOWN达到54次数',
+                        data: new Array(24).fill(0),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
                         },
                         datalabels: {
                             anchor: 'end',
@@ -314,6 +419,49 @@
             } catch (error) {
                 console.error('获取数据失败:', error);
                 document.getElementById('loadingIndicator').textContent = '加载失败';
+            }
+        }
+        
+        // 更新价格图表数据
+        async function updatePriceChart() {
+            const dateInput = document.getElementById('dateInput').value;
+            const viewType = document.getElementById('viewType').value;
+            
+            if (!dateInput) return;
+            
+            document.getElementById('priceLoadingIndicator').style.display = 'block';
+            document.getElementById('priceChart').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/price_stats?date=${dateInput}&type=${viewType}`);
+                const data = await response.json();
+                
+                // 更新价格图表
+                if (data.up_hourly_data && data.down_hourly_data) {
+                    priceChart.data.datasets[0].data = data.up_hourly_data;
+                    priceChart.data.datasets[1].data = data.down_hourly_data;
+                    priceChart.update();
+                }
+                
+                // 更新价格统计
+                document.getElementById('upReach54Count').textContent = data.up_reach_54_count || 0;
+                document.getElementById('downReach54Count').textContent = data.down_reach_54_count || 0;
+                document.getElementById('totalReach54Count').textContent = data.total_reach_54_count || 0;
+                document.getElementById('pricePeakHour').textContent = data.peak_hour || '--:--';
+                document.getElementById('priceAvgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
+                
+                const periods = data.period_stats || {};
+                document.getElementById('priceEarlyMorning').textContent = periods.early_morning?.count || 0;
+                document.getElementById('priceMorning').textContent = periods.morning?.count || 0;
+                document.getElementById('priceAfternoon').textContent = periods.afternoon?.count || 0;
+                document.getElementById('priceEvening').textContent = periods.evening?.count || 0;
+                
+                document.getElementById('priceLoadingIndicator').style.display = 'none';
+                document.getElementById('priceChart').style.display = 'block';
+                
+            } catch (error) {
+                console.error('获取价格数据失败:', error);
+                document.getElementById('priceLoadingIndicator').textContent = '加载失败';
             }
         }
     </script>

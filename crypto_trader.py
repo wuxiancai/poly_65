@@ -8318,6 +8318,122 @@ SHARES: {shares}
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
             return jsonify(self.trade_stats.get_monthly_stats(date))
         
+        @app.route('/api/price_stats')
+        def get_price_stats():
+            """获取价格达到54统计数据API"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            view_type = request.args.get('type', 'daily')
+            
+            try:
+                # 读取price_monitor_history.csv文件
+                csv_file = 'price_monitor_history.csv'
+                if not os.path.exists(csv_file):
+                    # 如果文件不存在，返回空数据
+                    return jsonify({
+                        'up_hourly_data': [0] * 24,
+                        'down_hourly_data': [0] * 24,
+                        'up_reach_54_count': 0,
+                        'down_reach_54_count': 0,
+                        'total_reach_54_count': 0,
+                        'peak_hour': '--:--',
+                        'avg_per_hour': 0,
+                        'period_stats': {
+                            'early_morning': {'count': 0},
+                            'morning': {'count': 0},
+                            'afternoon': {'count': 0},
+                            'evening': {'count': 0}
+                        }
+                    })
+                
+                # 解析日期范围
+                target_date = datetime.strptime(date, '%Y-%m-%d')
+                if view_type == 'daily':
+                    start_date = target_date
+                    end_date = target_date + timedelta(days=1)
+                elif view_type == 'weekly':
+                    # 获取该日期所在周的周一
+                    start_date = target_date - timedelta(days=target_date.weekday())
+                    end_date = start_date + timedelta(days=7)
+                elif view_type == 'monthly':
+                    # 获取该月的第一天和下个月的第一天
+                    start_date = target_date.replace(day=1)
+                    if start_date.month == 12:
+                        end_date = start_date.replace(year=start_date.year + 1, month=1)
+                    else:
+                        end_date = start_date.replace(month=start_date.month + 1)
+                else:
+                    return jsonify({'error': '无效的统计类型'}), 400
+                
+                # 初始化统计数据
+                up_hourly_data = [0] * 24
+                down_hourly_data = [0] * 24
+                up_count = 0
+                down_count = 0
+                
+                # 读取CSV文件并统计
+                with open(csv_file, 'r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        try:
+                            # 解析时间
+                            record_time = datetime.strptime(row['时间'], '%Y-%m-%d %H:%M:%S')
+                            
+                            # 检查是否在目标日期范围内
+                            if start_date <= record_time < end_date:
+                                symbol = row['符号']
+                                event_type = row['事件类型']
+                                hour = record_time.hour
+                                
+                                # 只统计"达到54"事件
+                                if event_type == '达到54':
+                                    if symbol == 'UP':
+                                        up_hourly_data[hour] += 1
+                                        up_count += 1
+                                    elif symbol == 'DOWN':
+                                        down_hourly_data[hour] += 1
+                                        down_count += 1
+                        except (ValueError, KeyError) as e:
+                            continue
+                
+                # 计算总计和统计信息
+                total_count = up_count + down_count
+                combined_hourly = [up_hourly_data[i] + down_hourly_data[i] for i in range(24)]
+                
+                # 找到最活跃时段
+                peak_hour = '--:--'
+                if combined_hourly and max(combined_hourly) > 0:
+                    peak_index = combined_hourly.index(max(combined_hourly))
+                    peak_hour = f'{peak_index:02d}:00'
+                
+                # 计算平均每小时
+                avg_per_hour = total_count / 24 if total_count > 0 else 0
+                
+                # 计算时段统计
+                early_morning_count = sum(combined_hourly[0:8])  # 0-8点
+                morning_count = sum(combined_hourly[8:16])  # 8-16点
+                afternoon_count = sum(combined_hourly[16:22])  # 16-22点
+                evening_count = sum(combined_hourly[22:24])  # 22-24点
+                
+                return jsonify({
+                    'up_hourly_data': up_hourly_data,
+                    'down_hourly_data': down_hourly_data,
+                    'up_reach_54_count': up_count,
+                    'down_reach_54_count': down_count,
+                    'total_reach_54_count': total_count,
+                    'peak_hour': peak_hour,
+                    'avg_per_hour': avg_per_hour,
+                    'period_stats': {
+                        'early_morning': {'count': early_morning_count},
+                        'morning': {'count': morning_count},
+                        'afternoon': {'count': afternoon_count},
+                        'evening': {'count': evening_count}
+                    }
+                })
+                
+            except Exception as e:
+                self.logger.error(f'获取价格统计数据失败: {e}')
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/trades/details')
         def get_trade_details():
             """获取详细交易记录（精确到秒）"""
