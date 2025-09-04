@@ -8690,6 +8690,16 @@ SHARES: {shares}
         </div>
         
         <div class="content">
+            <div class="controls">
+                <input style="background: transparent;" type="date" id="priceDateInput" />
+                <select style="background: transparent;" id="priceViewType">
+                    <option value="daily">日统计</option>
+                    <option value="weekly">周统计</option>
+                    <option value="monthly">月统计</option>
+                </select>
+                <button class="btn" style="font-size: 12px;" onclick="updatePriceChart()">更新数据</button>
+            </div>
+            
             <div class="chart-container">
                 <div id="priceLoadingIndicator" class="loading" style="display: none;">正在加载价格数据...</div>
                 <canvas id="priceChart" width="800" height="250"></canvas>
@@ -8881,7 +8891,8 @@ SHARES: {shares}
         
         // 更新价格图表数据
         async function updatePriceChart() {
-            const dateInput = document.getElementById('dateInput').value;
+            const dateInput = document.getElementById('priceDateInput').value;
+            const viewType = document.getElementById('priceViewType').value;
             
             if (!dateInput) return;
             
@@ -8889,7 +8900,7 @@ SHARES: {shares}
             document.getElementById('priceChart').style.display = 'none';
             
             try {
-                const response = await fetch(`/api/price_stats?date=${dateInput}`);
+                const response = await fetch(`/api/price_stats?date=${dateInput}&type=${viewType}`);
                 const data = await response.json();
                 
                 // 更新图表
@@ -8926,6 +8937,7 @@ SHARES: {shares}
             // 设置默认日期为今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dateInput').value = today;
+            document.getElementById('priceDateInput').value = today;
             
             // 初始化图表
             initChart();
