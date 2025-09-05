@@ -1,6 +1,6 @@
 #!/bin/bash
 # 一键部署 Sing-Box 到 Ubuntu Server
-# 智能选择 Web 面板端口（默认 8081），订阅自动更新，防火墙自动配置
+# 自动选择端口、防火墙、订阅更新，无 tar.gz 解压问题
 
 set -e
 
@@ -28,26 +28,29 @@ echo "使用端口 $WEB_PORT 作为 Sing-Box Web 面板端口"
 # -----------------------------
 echo "安装依赖..."
 sudo apt update
-sudo apt install -y curl wget unzip tar socat ufw
+sudo apt install -y curl wget socat ufw
 
 # -----------------------------
-# 下载 Sing-Box
+# 创建安装目录
 # -----------------------------
-echo "下载 Sing-Box..."
 sudo mkdir -p $INSTALL_DIR
 cd $INSTALL_DIR
 
-SB_LATEST=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep browser_download_url | grep linux | grep amd64 | cut -d '"' -f 4)
-wget -O sing-box.tar.gz $SB_LATEST
-tar -xzf sing-box.tar.gz
-chmod +x sing-box
-rm sing-box.tar.gz
+# -----------------------------
+# 下载 Sing-Box 可执行文件（直接下载，无需解压）
+# -----------------------------
+echo "下载 Sing-Box 可执行文件..."
+SB_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest \
+    | grep browser_download_url | grep linux | grep amd64 | cut -d '"' -f 4)
+
+sudo wget -O $INSTALL_DIR/sing-box $SB_URL
+sudo chmod +x $INSTALL_DIR/sing-box
 
 # -----------------------------
 # 配置 Sing-Box 配置文件
 # -----------------------------
 CONFIG_FILE="$INSTALL_DIR/config.json"
-cat > $CONFIG_FILE <<EOL
+cat | sudo tee $CONFIG_FILE <<EOL
 {
   "log": {
     "level": "info",
@@ -78,8 +81,8 @@ EOL
 # -----------------------------
 # 配置 systemd 服务
 # -----------------------------
-echo "配置 systemd 服务..."
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
+echo "配置 systemd 服务..."
 sudo tee $SERVICE_FILE <<EOL
 [Unit]
 Description=Sing-Box Service
@@ -104,17 +107,22 @@ sudo systemctl start $SERVICE_NAME
 # -----------------------------
 echo "配置防火墙..."
 if sudo ufw status | grep -q inactive; then
-    sudo ufw enable
+    sudo ufw --force enable
 fi
 sudo ufw allow $WEB_PORT/tcp
 
 # -----------------------------
 # 配置每天 4 点自动更新订阅
 # -----------------------------
-echo "配置每天 4 点更新订阅..."
+echo "配置每天 4 点自动更新订阅..."
 CRON_CMD="cd $INSTALL_DIR && $INSTALL_DIR/sing-box -u"
 (crontab -l 2>/dev/null; echo "$UPDATE_TIME $CRON_CMD") | crontab -
 
-echo "部署完成！Sing-Box Web 面板端口: $WEB_PORT"
+# -----------------------------
+# 完成提示
+# -----------------------------
+echo "部署完成！"
+echo "Sing-Box Web 面板端口: $WEB_PORT"
 echo "每天 4 点自动更新订阅"
-echo "防火墙端口已开放，如果有其他防火墙，请额外配置"
+echo "防火墙端口已开放"
+echo "使用命令查看日志: sudo journalctl -u $SERVICE_NAME -f"
