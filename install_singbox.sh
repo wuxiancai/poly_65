@@ -106,7 +106,7 @@ services:
     container_name: yacd
     restart: always
     ports:
-      - "8080:80"     # Web 控制台端口
+      - "5000:5000"     # Web 控制台端口  
 EOF
 
 # 启动服务
@@ -140,7 +140,7 @@ echo "==========================================="
 echo "Sing-Box + Yacd 安装完成！"
 echo "HTTP/SOCKS5 代理端口: 7890"
 echo "API 控制端口: 9090"
-echo "Web 控制面板: http://<你的服务器IP>:8080"
+echo "Web 控制面板: http://<你的服务器IP>:5000"
 echo "订阅自动每天 4 点更新"
 echo "你可以执行 '$CLASH_DIR/update.sh' 手动更新订阅"
 echo "==========================================="
