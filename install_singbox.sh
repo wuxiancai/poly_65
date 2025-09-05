@@ -145,10 +145,12 @@ sudo tee $CONFIG_FILE <<EOL
     "timestamp": true
   },
   "experimental": {
-    "external_controller": "127.0.0.1:9090",
-    "external_ui": "ui",
-    "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
-    "external_ui_download_detour": "direct"
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
+      "external_ui_download_detour": "direct"
+    }
   },
   "inbounds": [
     {
