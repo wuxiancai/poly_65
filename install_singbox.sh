@@ -137,6 +137,13 @@ if [ -n "$SUBSCRIPTION_URL" ]; then
       "external_ui_download_detour": "direct"
     }
   },
+  "dns": {
+    "servers": [
+      {"tag":"remote","address":"tls://1.1.1.1"},
+      {"tag":"local","address":"local"}
+    ],
+    "strategy": "prefer_ipv4"
+  },
   "inbounds": [
     {
       "type": "http",
@@ -167,7 +174,7 @@ EOL
 
     # 使用 jq 增强订阅配置：注入 Clash API（MetaCubeX-D）、本地 HTTP/SOCKS 入站，以及路由开关
     if [ -f "$CONFIG_FILE" ] && command -v jq >/dev/null 2>&1; then
-        echo "增强订阅配置（注入面板与本地端口）..."
+        echo "增强订阅配置（注入面板与本地端口 + 全局代理TUN）..."
         sudo jq '
           .experimental = (.experimental // {}) |
           .experimental.clash_api = (.experimental.clash_api // {}) |
@@ -177,13 +184,25 @@ EOL
           .experimental.clash_api.external_ui_download_detour = "direct" |
           .route = (.route // {}) |
           .route.auto_detect_interface = true |
+          .dns = (.dns // {"servers": [{"tag":"remote","address":"tls://1.1.1.1"},{"tag":"local","address":"local"}], "strategy":"prefer_ipv4"}) |
           .inbounds = (if (.inbounds | type) == "array" then .inbounds else [] end) |
           (if (.inbounds | map(.type) | index("socks")) == null then
              .inbounds += [{"type":"socks","tag":"socks-in","listen":"0.0.0.0","listen_port": '"$SOCKS_PORT"'}]
            else . end) |
           (if (.inbounds | map(.type) | index("http")) == null then
              .inbounds += [{"type":"http","tag":"http-in","listen":"0.0.0.0","listen_port": '"$HTTP_PORT"'}]
-           else . end)
+           else . end) |
+          (if (.inbounds | map(.type) | index("tun")) == null then
+             .inbounds += [{"type":"tun","tag":"tun-in","inet4_address":"172.19.0.1/30","auto_route":true,"strict_route":false,"stack":"mixed"}]
+           else . end) |
+          (.outbounds | type) as $ot |
+          $final := ( if $ot=="array" then
+                        (if (.outbounds | map(.tag) | index("select")) != null then "select"
+                         elif (.outbounds | map(.tag) | index("GLOBAL")) != null then "GLOBAL"
+                         elif (.outbounds | map(.tag) | index("urltest")) != null then "urltest"
+                         else "direct" end)
+                      else "direct" end) |
+          .route.final = $final
         ' "$CONFIG_FILE" | sudo tee "$CONFIG_FILE.tmp" >/dev/null && sudo mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
     fi
     
@@ -209,6 +228,13 @@ EOL
       "external_ui_download_detour": "direct"
     }
   },
+  "dns": {
+    "servers": [
+      {"tag":"remote","address":"tls://1.1.1.1"},
+      {"tag":"local","address":"local"}
+    ],
+    "strategy": "prefer_ipv4"
+  },
   "inbounds": [
     {
       "type": "http",
@@ -221,6 +247,14 @@ EOL
       "tag": "socks-in",
       "listen": "0.0.0.0",
       "listen_port": $SOCKS_PORT
+    },
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true,
+      "strict_route": false,
+      "stack": "mixed"
     }
   ],
   "outbounds": [
@@ -252,6 +286,13 @@ else
       "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
       "external_ui_download_detour": "direct"
     }
+  },
+  "dns": {
+    "servers": [
+      {"tag":"remote","address":"tls://1.1.1.1"},
+      {"tag":"local","address":"local"}
+    ],
+    "strategy": "prefer_ipv4"
   },
   "inbounds": [
     {
