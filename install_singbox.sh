@@ -19,18 +19,6 @@ if ! command -v docker-compose &> /dev/null; then
     sudo apt install -y docker-compose
 fi
 
-# 配置 Docker 镜像加速器
-echo "==> 配置 Docker 镜像加速器..."
-sudo mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json <<EOF
-{
-  "registry-mirrors": [
-    "https://docker.m.daocloud.io",
-    "https://mirror.iscas.ac.cn",
-    "https://ccr.ccs.tencentyun.com"
-  ]
-}
-EOF
 
 # 重启 Docker 服务
 sudo systemctl daemon-reload
