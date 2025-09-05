@@ -142,6 +142,9 @@ if ! grep -q "# Python 配置" ~/.bashrc; then
     echo 'export PATH="/usr/bin:$PATH"' >> ~/.bashrc
     echo 'export TK_SILENCE_DEPRECATION=1' >> ~/.bashrc
     echo 'export DISPLAY=:0' >> ~/.bashrc
+    echo '# Flask 云服务器配置' >> ~/.bashrc
+    echo 'export FLASK_HOST=0.0.0.0' >> ~/.bashrc
+    echo 'export FLASK_PORT=8080' >> ~/.bashrc
 fi
 
 # 获取脚本所在目录，作为项目根目录
