@@ -33,6 +33,14 @@ while sudo lsof -i :$SOCKS_PORT >/dev/null 2>&1; do
 done
 echo "使用 Web 面板端口: $WEB_PORT"
 echo "使用 SOCKS5 端口: $SOCKS_PORT"
+# 计算 HTTP 代理端口并检查占用
+HTTP_PORT=$((SOCKS_PORT + 1))
+echo "检查端口 $HTTP_PORT 是否被占用..."
+while sudo lsof -i :$HTTP_PORT >/dev/null 2>&1; do
+    echo "HTTP 端口 $HTTP_PORT 被占用，尝试下一个端口..."
+    HTTP_PORT=$((HTTP_PORT + 1))
+done
+echo "使用 HTTP 代理端口: $HTTP_PORT"
 
 # -----------------------------
 # 检查是否已安装
@@ -43,7 +51,7 @@ if [ -f "$INSTALL_DIR/sing-box" ] && [ -f "/etc/systemd/system/$SERVICE_NAME.ser
     if sudo systemctl is-active --quiet $SERVICE_NAME; then
         echo "✅ Sing-Box 已安装并正在运行"
         echo "服务状态: $(sudo systemctl is-active $SERVICE_NAME)"
-        echo "Web 管理界面: http://localhost:$WEB_PORT"
+        echo "Web 管理界面: http://localhost:$WEB_PORT/ui"
         echo "SOCKS5 代理: 127.0.0.1:$SOCKS_PORT"
         echo "如需重新安装，请先运行: sudo systemctl stop $SERVICE_NAME"
         exit 0
@@ -53,7 +61,7 @@ if [ -f "$INSTALL_DIR/sing-box" ] && [ -f "/etc/systemd/system/$SERVICE_NAME.ser
         sleep 3
         if sudo systemctl is-active --quiet $SERVICE_NAME; then
             echo "✅ Sing-Box 服务启动成功"
-            echo "Web 管理界面: http://localhost:$WEB_PORT"
+            echo "Web 管理界面: http://localhost:$WEB_PORT/ui"
             echo "SOCKS5 代理: 127.0.0.1:$SOCKS_PORT"
             exit 0
         else
@@ -68,7 +76,7 @@ fi
 # 安装依赖
 # -----------------------------
 sudo apt update
-sudo apt install -y curl wget socat iptables-persistent
+sudo apt install -y curl wget jq unzip socat iptables-persistent
 
 # -----------------------------
 # 创建安装目录
@@ -142,7 +150,7 @@ echo "正在下载订阅配置..."
 
 if [ -n "$SUBSCRIPTION_URL" ]; then
     # 直接下载订阅配置作为主配置
-    sudo wget -O "$CONFIG_FILE" "$SUBSCRIPTION_URL" || {
+    sudo wget --no-check-certificate -O "$CONFIG_FILE" "$SUBSCRIPTION_URL" || {
         echo "订阅下载失败，生成基础配置"
         # 生成基础配置作为备用
         sudo tee $CONFIG_FILE <<EOL
@@ -153,7 +161,7 @@ if [ -n "$SUBSCRIPTION_URL" ]; then
   },
   "experimental": {
     "clash_api": {
-      "external_controller": "127.0.0.1:9090",
+      "external_controller": "0.0.0.0:$WEB_PORT",
       "external_ui": "ui",
       "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
       "external_ui_download_detour": "direct"
@@ -164,12 +172,12 @@ if [ -n "$SUBSCRIPTION_URL" ]; then
       "type": "http",
       "tag": "http-in",
       "listen": "0.0.0.0",
-      "listen_port": $WEB_PORT
+      "listen_port": $HTTP_PORT
     },
     {
       "type": "socks",
       "tag": "socks-in",
-      "listen": "127.0.0.1",
+      "listen": "0.0.0.0",
       "listen_port": $SOCKS_PORT
     }
   ],
@@ -186,6 +194,28 @@ if [ -n "$SUBSCRIPTION_URL" ]; then
 }
 EOL
     }
+
+    # 使用 jq 增强订阅配置：注入 Clash API（MetaCubeX-D）、本地 HTTP/SOCKS 入站，以及路由开关
+    if [ -f "$CONFIG_FILE" ] && command -v jq >/dev/null 2>&1; then
+        echo "增强订阅配置（注入面板与本地端口）..."
+        sudo jq '
+          .experimental = (.experimental // {}) |
+          .experimental.clash_api = (.experimental.clash_api // {}) |
+          .experimental.clash_api.external_controller = "0.0.0.0:'"$WEB_PORT"'" |
+          .experimental.clash_api.external_ui = "ui" |
+          .experimental.clash_api.external_ui_download_url = "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip" |
+          .experimental.clash_api.external_ui_download_detour = "direct" |
+          .route = (.route // {}) |
+          .route.auto_detect_interface = true |
+          .inbounds = (if (.inbounds | type) == "array" then .inbounds else [] end) |
+          (if (.inbounds | map(.type) | index("socks")) == null then
+             .inbounds += [{"type":"socks","tag":"socks-in","listen":"0.0.0.0","listen_port": '"$SOCKS_PORT"'}]
+           else . end) |
+          (if (.inbounds | map(.type) | index("http")) == null then
+             .inbounds += [{"type":"http","tag":"http-in","listen":"0.0.0.0","listen_port": '"$HTTP_PORT"'}]
+           else . end)
+        ' "$CONFIG_FILE" | sudo tee "$CONFIG_FILE.tmp" >/dev/null && sudo mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    fi
     
     # 检查下载的配置文件是否有效
     if [ -f "$CONFIG_FILE" ]; then
@@ -201,17 +231,25 @@ EOL
     "level": "info",
     "timestamp": true
   },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "0.0.0.0:$WEB_PORT",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
+      "external_ui_download_detour": "direct"
+    }
+  },
   "inbounds": [
     {
       "type": "http",
       "tag": "http-in",
       "listen": "0.0.0.0",
-      "listen_port": $WEB_PORT
+      "listen_port": $HTTP_PORT
     },
     {
       "type": "socks",
       "tag": "socks-in",
-      "listen": "127.0.0.1",
+      "listen": "0.0.0.0",
       "listen_port": $SOCKS_PORT
     }
   ],
@@ -237,17 +275,25 @@ else
     "level": "info",
     "timestamp": true
   },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "0.0.0.0:$WEB_PORT",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip",
+      "external_ui_download_detour": "direct"
+    }
+  },
   "inbounds": [
     {
       "type": "http",
       "tag": "http-in",
       "listen": "0.0.0.0",
-      "listen_port": $WEB_PORT
+      "listen_port": $HTTP_PORT
     },
     {
       "type": "socks",
       "tag": "socks-in",
-      "listen": "127.0.0.1",
+      "listen": "0.0.0.0",
       "listen_port": $SOCKS_PORT
     }
   ],
@@ -276,6 +322,7 @@ After=network.target
 
 [Service]
 Type=simple
+WorkingDirectory=$INSTALL_DIR
 ExecStart=$INSTALL_DIR/sing-box run -c $CONFIG_FILE
 Restart=on-failure
 RestartSec=5s
@@ -335,6 +382,7 @@ fi
 sudo ufw allow 22/tcp
 sudo ufw allow $WEB_PORT/tcp
 sudo ufw allow $SOCKS_PORT/tcp
+sudo ufw allow $HTTP_PORT/tcp
 
 # -----------------------------
 # Ubuntu 全局代理
@@ -357,8 +405,9 @@ CRON_CMD="cd $INSTALL_DIR && $INSTALL_DIR/sing-box -u"
 (crontab -l 2>/dev/null; echo "$UPDATE_TIME $CRON_CMD") | crontab -
 
 echo "========================================"
-echo "部署完成！Web 面板端口: $WEB_PORT, SOCKS5: $SOCKS_PORT"
-echo "Ubuntu 全局代理已生效"
+echo "部署完成！面板: http://<你的服务器IP或localhost>:$WEB_PORT/ui"
+echo "SOCKS5: 127.0.0.1:$SOCKS_PORT  HTTP: 127.0.0.1:$HTTP_PORT"
+echo "Ubuntu 全局代理已生效 (socks5)"
 echo "每天 4 点自动更新订阅"
 echo "使用: sudo journalctl -u $SERVICE_NAME -f 查看日志"
 echo "========================================"
