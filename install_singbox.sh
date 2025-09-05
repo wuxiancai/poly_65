@@ -97,8 +97,8 @@ services:
     volumes:
       - ./config.json:/etc/sing-box/config.json
     ports:
-      - "7890:7890"   # HTTP/SOCKS5 代理端口
-      - "9090:9090"   # API 控制端口
+      - "0.0.0.0:7890:7890"   # HTTP/SOCKS5 代理端口，绑定所有网络接口
+      - "0.0.0.0:9090:9090"   # API 控制端口，绑定所有网络接口
     command: sing-box run -c /etc/sing-box/config.json
 
   yacd:
@@ -106,7 +106,7 @@ services:
     container_name: yacd
     restart: always
     ports:
-      - "8081:80"       # Web 控制台端口  
+      - "0.0.0.0:8081:80"  # Web 控制台端口，绑定所有网络接口  
 EOF
 
 # 启动服务
