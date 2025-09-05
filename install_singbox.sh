@@ -357,15 +357,15 @@ sudo ufw allow $HTTP_PORT/tcp
 # -----------------------------
 # Ubuntu 全局代理
 # -----------------------------
-grep -qxF "export http_proxy=socks5://127.0.0.1:$SOCKS_PORT" ~/.bashrc || \
-    echo "export http_proxy=socks5://127.0.0.1:$SOCKS_PORT" >> ~/.bashrc
-grep -qxF "export https_proxy=socks5://127.0.0.1:$SOCKS_PORT" ~/.bashrc || \
-    echo "export https_proxy=socks5://127.0.0.1:$SOCKS_PORT" >> ~/.bashrc
+grep -qxF "export http_proxy=http://127.0.0.1:$HTTP_PORT" ~/.bashrc || \
+    echo "export http_proxy=http://127.0.0.1:$HTTP_PORT" >> ~/.bashrc
+grep -qxF "export https_proxy=http://127.0.0.1:$HTTP_PORT" ~/.bashrc || \
+    echo "export https_proxy=http://127.0.0.1:$HTTP_PORT" >> ~/.bashrc
 grep -qxF "export all_proxy=socks5://127.0.0.1:$SOCKS_PORT" ~/.bashrc || \
     echo "export all_proxy=socks5://127.0.0.1:$SOCKS_PORT" >> ~/.bashrc
 
-export http_proxy="socks5://127.0.0.1:$SOCKS_PORT"
-export https_proxy="socks5://127.0.0.1:$SOCKS_PORT"
+export http_proxy="http://127.0.0.1:$HTTP_PORT"
+export https_proxy="http://127.0.0.1:$HTTP_PORT"
 export all_proxy="socks5://127.0.0.1:$SOCKS_PORT"
 
 # -----------------------------
