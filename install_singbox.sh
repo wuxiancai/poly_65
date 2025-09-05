@@ -43,10 +43,38 @@ cd $INSTALL_DIR
 # -----------------------------
 # 下载 Sing-Box
 # -----------------------------
-SB_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest \
-    | grep browser_download_url | grep linux | grep amd64 | cut -d '"' -f 4)
-sudo wget -O $INSTALL_DIR/sing-box $SB_URL
+echo "正在下载 Sing-Box..."
+
+# 尝试多种下载方式
+if [ ! -f "$INSTALL_DIR/sing-box" ]; then
+    # 方法1: 使用GitHub API获取最新版本
+    echo "尝试获取最新版本..."
+    SB_URL=$(curl -s --connect-timeout 10 https://api.github.com/repos/SagerNet/sing-box/releases/latest \
+        | grep browser_download_url | grep linux | grep amd64 | head -1 | cut -d '"' -f 4)
+    
+    if [ -n "$SB_URL" ]; then
+        echo "下载链接: $SB_URL"
+        sudo wget --timeout=30 --tries=3 -O $INSTALL_DIR/sing-box "$SB_URL" || {
+            echo "GitHub下载失败，尝试备用方案..."
+            SB_URL=""
+        }
+    fi
+    
+    # 方法2: 使用固定版本作为备用
+    if [ -z "$SB_URL" ] || [ ! -f "$INSTALL_DIR/sing-box" ]; then
+        echo "使用备用下载链接..."
+        BACKUP_URL="https://github.com/SagerNet/sing-box/releases/download/v1.8.0/sing-box-1.8.0-linux-amd64.tar.gz"
+        sudo wget --timeout=30 --tries=3 -O /tmp/sing-box.tar.gz "$BACKUP_URL"
+        cd /tmp
+        sudo tar -xzf sing-box.tar.gz
+        sudo mv sing-box-*/sing-box $INSTALL_DIR/
+        sudo rm -rf sing-box-* sing-box.tar.gz
+        cd $INSTALL_DIR
+    fi
+fi
+
 sudo chmod +x $INSTALL_DIR/sing-box
+echo "Sing-Box 下载完成"
 
 # -----------------------------
 # 生成配置文件
