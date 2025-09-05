@@ -176,20 +176,13 @@ SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 sudo tee $SERVICE_FILE <<EOL
 [Unit]
 Description=Sing-Box Service
-After=network.target nss-lookup.target
+After=network.target
 
 [Service]
 Type=simple
-User=root
-Group=root
 ExecStart=$INSTALL_DIR/sing-box run -c $CONFIG_FILE
-ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
-RestartSec=10s
-KillMode=mixed
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=singbox
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
