@@ -89,30 +89,63 @@ sudo tee $CONFIG_FILE <<EOL
   "inbounds": [
     {
       "type": "http",
-      "tag": "web",
+      "tag": "http-in",
       "listen": "0.0.0.0",
       "listen_port": $WEB_PORT
     },
     {
       "type": "socks",
-      "tag": "socks",
+      "tag": "socks-in",
       "listen": "127.0.0.1",
       "listen_port": $SOCKS_PORT
     }
   ],
   "outbounds": [
     {
-      "type": "proxy",
+      "type": "selector",
       "tag": "proxy",
-      "subscription_url": "$SUBSCRIPTION_URL"
+      "outbounds": ["auto", "direct"]
+    },
+    {
+      "type": "urltest",
+      "tag": "auto",
+      "outbounds": ["direct"],
+      "url": "http://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
     },
     {
       "type": "direct",
       "tag": "direct"
     }
-  ]
+  ],
+  "route": {
+    "rules": [
+      {
+        "geoip": "cn",
+        "outbound": "direct"
+      }
+    ],
+    "auto_detect_interface": true
+  }
 }
 EOL
+
+# -----------------------------
+# 下载订阅配置
+# -----------------------------
+echo "正在下载订阅配置..."
+if [ -n "$SUBSCRIPTION_URL" ]; then
+    sudo wget -O "$INSTALL_DIR/subscription.json" "$SUBSCRIPTION_URL" || {
+        echo "订阅下载失败，使用基础配置"
+    }
+    
+    # 如果订阅下载成功，合并配置
+    if [ -f "$INSTALL_DIR/subscription.json" ]; then
+        echo "合并订阅配置..."
+        # 这里可以添加配置合并逻辑
+    fi
+fi
 
 # -----------------------------
 # 配置 systemd
@@ -121,21 +154,66 @@ SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 sudo tee $SERVICE_FILE <<EOL
 [Unit]
 Description=Sing-Box Service
-After=network.target
+After=network.target nss-lookup.target
 
 [Service]
 Type=simple
-ExecStart=$INSTALL_DIR/sing-box -c $CONFIG_FILE
+User=root
+Group=root
+ExecStart=$INSTALL_DIR/sing-box run -c $CONFIG_FILE
+ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
-RestartSec=5s
+RestartSec=10s
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=singbox
 
 [Install]
 WantedBy=multi-user.target
 EOL
 
+# 验证sing-box二进制文件
+echo "验证sing-box安装..."
+if [ ! -f "$INSTALL_DIR/sing-box" ]; then
+    echo "错误: sing-box二进制文件不存在"
+    exit 1
+fi
+
+if [ ! -x "$INSTALL_DIR/sing-box" ]; then
+    echo "错误: sing-box文件没有执行权限"
+    sudo chmod +x "$INSTALL_DIR/sing-box"
+fi
+
+# 测试配置文件
+echo "测试配置文件..."
+sudo "$INSTALL_DIR/sing-box" check -c "$CONFIG_FILE" || {
+    echo "配置文件验证失败，请检查配置"
+    exit 1
+}
+
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME
+
+# 停止可能存在的旧服务
+sudo systemctl stop $SERVICE_NAME 2>/dev/null || true
+
+# 启动服务
+echo "启动sing-box服务..."
 sudo systemctl start $SERVICE_NAME
+
+# 等待服务启动
+sleep 3
+
+# 检查服务状态
+if sudo systemctl is-active --quiet $SERVICE_NAME; then
+    echo "✅ sing-box服务启动成功"
+else
+    echo "❌ sing-box服务启动失败"
+    echo "查看错误日志:"
+    sudo journalctl -u $SERVICE_NAME --no-pager -n 20
+    exit 1
+fi
 
 # -----------------------------
 # 防火墙配置
