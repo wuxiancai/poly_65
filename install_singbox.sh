@@ -45,32 +45,54 @@ cd $INSTALL_DIR
 # -----------------------------
 echo "正在下载 Sing-Box..."
 
+# 清理可能存在的损坏文件
+if [ -f "$INSTALL_DIR/sing-box" ]; then
+    echo "检查现有文件..."
+    if ! file "$INSTALL_DIR/sing-box" | grep -q "ELF.*executable"; then
+        echo "发现损坏的文件，删除重新下载..."
+        sudo rm -f "$INSTALL_DIR/sing-box"
+    fi
+fi
+
 # 尝试多种下载方式
 if [ ! -f "$INSTALL_DIR/sing-box" ]; then
-    # 方法1: 使用GitHub API获取最新版本
-    echo "尝试获取最新版本..."
-    SB_URL=$(curl -s --connect-timeout 10 https://api.github.com/repos/SagerNet/sing-box/releases/latest \
-        | grep browser_download_url | grep linux | grep amd64 | head -1 | cut -d '"' -f 4)
+    # 方法1: 直接使用固定版本（更可靠）
+    echo "下载 sing-box v1.12.4..."
+    BACKUP_URL="https://github.com/SagerNet/sing-box/releases/download/v1.12.4/sing-box-1.12.4-linux-amd64.tar.gz"
     
-    if [ -n "$SB_URL" ]; then
-        echo "下载链接: $SB_URL"
-        sudo wget --timeout=30 --tries=3 -O $INSTALL_DIR/sing-box "$SB_URL" || {
-            echo "GitHub下载失败，尝试备用方案..."
-            SB_URL=""
-        }
-    fi
+    # 下载到临时目录
+    TEMP_DIR="/tmp/singbox_install_$$"
+    mkdir -p "$TEMP_DIR"
+    cd "$TEMP_DIR"
     
-    # 方法2: 使用固定版本作为备用
-    if [ -z "$SB_URL" ] || [ ! -f "$INSTALL_DIR/sing-box" ]; then
-        echo "使用备用下载链接..."
-        BACKUP_URL="https://github.com/SagerNet/sing-box/releases/download/v1.8.0/sing-box-1.8.0-linux-amd64.tar.gz"
-        sudo wget --timeout=30 --tries=3 -O /tmp/sing-box.tar.gz "$BACKUP_URL"
-        cd /tmp
+    if sudo wget --timeout=30 --tries=3 -O sing-box.tar.gz "$BACKUP_URL"; then
+        echo "解压文件..."
         sudo tar -xzf sing-box.tar.gz
-        sudo mv sing-box-*/sing-box $INSTALL_DIR/
-        sudo rm -rf sing-box-* sing-box.tar.gz
-        cd $INSTALL_DIR
+        
+        # 查找sing-box二进制文件
+        SING_BOX_BIN=$(find . -name "sing-box" -type f -executable | head -1)
+        
+        if [ -n "$SING_BOX_BIN" ] && [ -f "$SING_BOX_BIN" ]; then
+            echo "验证二进制文件..."
+            if file "$SING_BOX_BIN" | grep -q "ELF.*executable"; then
+                sudo cp "$SING_BOX_BIN" "$INSTALL_DIR/sing-box"
+                echo "✅ sing-box 下载成功"
+            else
+                echo "❌ 下载的文件不是有效的可执行文件"
+                exit 1
+            fi
+        else
+            echo "❌ 在压缩包中找不到 sing-box 可执行文件"
+            exit 1
+        fi
+    else
+        echo "❌ 下载失败"
+        exit 1
     fi
+    
+    # 清理临时文件
+    cd /
+    sudo rm -rf "$TEMP_DIR"
 fi
 
 sudo chmod +x $INSTALL_DIR/sing-box
