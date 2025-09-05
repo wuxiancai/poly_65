@@ -80,7 +80,7 @@ echo "Sing-Box 下载完成"
 # 生成配置文件
 # -----------------------------
 CONFIG_FILE="$INSTALL_DIR/config.json"
-cat | sudo tee $CONFIG_FILE <<EOL
+sudo tee $CONFIG_FILE <<EOL
 {
   "log": {
     "level": "info",
