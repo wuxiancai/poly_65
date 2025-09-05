@@ -19,20 +19,6 @@ if ! command -v docker-compose &> /dev/null; then
     sudo apt install -y docker-compose
 fi
 
-
-# 重启 Docker 服务
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-
-# 等待 Docker 服务完全启动
-echo "==> 等待 Docker 服务启动..."
-sleep 5
-
-# 验证 Docker 服务状态
-sudo systemctl status docker --no-pager
-echo "==> Docker 配置验证:"
-sudo docker info | grep -A 10 "Registry Mirrors" || echo "镜像加速器配置检查完成"
-
 # 创建工作目录
 CLASH_DIR="/root/clash"
 mkdir -p "$CLASH_DIR"
@@ -41,19 +27,20 @@ mkdir -p "$CLASH_DIR"
 echo "==> 拉取 Sing-Box 订阅配置..."
 curl -L "$SUB_URL" -o "$CLASH_DIR/config.json"
 
-# 确保 experimental 配置，Yacd 可用
-if ! grep -q "experimental" "$CLASH_DIR/config.json"; then
-    # 备份原配置
-    cp "$CLASH_DIR/config.json" "$CLASH_DIR/config.json.bak"
-    
-    # 使用 jq 添加 experimental 配置
-    if command -v jq &> /dev/null; then
-        jq '. + {"experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "metacubexd", "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip", "external_ui_download_detour": "select", "default_mode": "rule"}}}' "$CLASH_DIR/config.json.bak" > "$CLASH_DIR/config.json"
-    else
-        # 如果没有 jq，安装它
-        sudo apt install -y jq
-        jq '. + {"experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "metacubexd", "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip", "external_ui_download_detour": "select", "default_mode": "rule"}}}' "$CLASH_DIR/config.json.bak" > "$CLASH_DIR/config.json"
-    fi
+# 确保 external-controller 配置，Yacd 可用
+if ! grep -q "external-controller" "$CLASH_DIR/config.json"; then
+cat >> "$CLASH_DIR/config.json" <<EOF
+
+"experimental": {
+  "clash_api": {
+    "external_controller": "0.0.0.0:9090",
+    "external_ui": "metacubexd",
+    "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+    "external_ui_download_detour": "select",
+    "default_mode": "rule"
+  }
+}
+EOF
 fi
 
 # 创建更新脚本
@@ -66,16 +53,24 @@ CONFIG_PATH="/root/clash/config.json"
 echo "==> 更新 Sing-Box 订阅..."
 curl -L "$SUB_URL" -o "$CONFIG_PATH"
 
-# 确保 experimental 配置
-if ! grep -q "experimental" "$CONFIG_PATH"; then
-    # 备份原配置
-    cp "$CONFIG_PATH" "$CONFIG_PATH.bak"
-    
-    # 使用 jq 添加 experimental 配置
-    jq '. + {"experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "metacubexd", "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip", "external_ui_download_detour": "select", "default_mode": "rule"}}}' "$CONFIG_PATH.bak" > "$CONFIG_PATH"
+# 确保 external-controller 配置
+if ! grep -q "external-controller" "$CONFIG_PATH"; then
+cat >> "$CONFIG_PATH" <<EOC
+"experimental": {
+  "clash_api": {
+    "external_controller": "0.0.0.0:9090",
+    "external_ui": "metacubexd",
+    "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+    "external_ui_download_detour": "select",
+    "default_mode": "rule"
+  }
+}
+EOC
 fi
 
-# 重启 Sing-Box 容器
+# 拉取最新镜像并重启容器
+docker pull ghcr.io/xtls/xray-core:latest
+docker pull ghcr.io/haishanh/yacd:latest
 docker compose -f /root/clash/docker-compose.yml restart sing-box
 EOF
 
@@ -83,9 +78,10 @@ chmod +x "$CLASH_DIR/update.sh"
 
 # 创建 docker-compose.yml
 cat > "$CLASH_DIR/docker-compose.yml" <<'EOF'
+version: "3.8"
 services:
   sing-box:
-    image: sagernet/sing-box:latest
+    image: ghcr.io/xtls/xray-core:latest
     container_name: sing-box
     restart: always
     volumes:
@@ -93,37 +89,23 @@ services:
     ports:
       - "7890:7890"   # HTTP/SOCKS5 代理端口
       - "9090:9090"   # API 控制端口
-    command: sing-box run -c /etc/sing-box/config.json
 
   yacd:
-    image: haishanh/yacd:latest
+    image: ghcr.io/haishanh/yacd:latest
     container_name: yacd
     restart: always
     ports:
       - "8080:80"     # Web 控制台端口
 EOF
 
+# 手动拉取镜像（利用 Docker 代理配置）
+echo "==> 拉取 Docker 镜像..."
+docker pull ghcr.io/xtls/xray-core:latest
+docker pull ghcr.io/haishanh/yacd:latest
+
 # 启动服务
 echo "==> 启动 Sing-Box + Yacd..."
 cd "$CLASH_DIR"
-
-# 尝试拉取镜像（带重试机制）
-echo "==> 拉取 Docker 镜像..."
-for i in {1..3}; do
-    echo "第 $i 次尝试拉取镜像..."
-    if docker compose pull; then
-        echo "镜像拉取成功！"
-        break
-    else
-        echo "镜像拉取失败，等待 10 秒后重试..."
-        sleep 10
-    fi
-    if [ $i -eq 3 ]; then
-        echo "警告: 镜像拉取失败，尝试直接启动服务..."
-    fi
-done
-
-# 启动容器
 docker compose up -d
 
 # 创建 crontab 定时任务（每天 4 点更新订阅）
