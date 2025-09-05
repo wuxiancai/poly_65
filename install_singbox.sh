@@ -43,36 +43,6 @@ done
 echo "使用 HTTP 代理端口: $HTTP_PORT"
 
 # -----------------------------
-# 检查是否已安装
-# -----------------------------
-echo "检查 Sing-Box 是否已安装..."
-if [ -f "$INSTALL_DIR/sing-box" ] && [ -f "/etc/systemd/system/$SERVICE_NAME.service" ]; then
-    echo "检查 Sing-Box 服务状态..."
-    if sudo systemctl is-active --quiet $SERVICE_NAME; then
-        echo "✅ Sing-Box 已安装并正在运行"
-        echo "服务状态: $(sudo systemctl is-active $SERVICE_NAME)"
-        echo "Web 管理界面: http://localhost:$WEB_PORT/ui"
-        echo "SOCKS5 代理: 127.0.0.1:$SOCKS_PORT"
-        echo "如需重新安装，请先运行: sudo systemctl stop $SERVICE_NAME"
-        exit 0
-    else
-        echo "⚠️  Sing-Box 已安装但未运行，尝试启动服务..."
-        sudo systemctl start $SERVICE_NAME
-        sleep 3
-        if sudo systemctl is-active --quiet $SERVICE_NAME; then
-            echo "✅ Sing-Box 服务启动成功"
-            echo "Web 管理界面: http://localhost:$WEB_PORT/ui"
-            echo "SOCKS5 代理: 127.0.0.1:$SOCKS_PORT"
-            exit 0
-        else
-            echo "❌ 服务启动失败，继续重新安装..."
-        fi
-    fi
-else
-    echo "Sing-Box 未安装，开始安装流程..."
-fi
-
-# -----------------------------
 # 安装依赖
 # -----------------------------
 sudo apt update
