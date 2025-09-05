@@ -25,9 +25,9 @@ sudo mkdir -p /etc/docker
 sudo tee /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://mirror.baidubce.com"
+    "https://docker.m.daocloud.io",
+    "https://mirror.iscas.ac.cn",
+    "https://ccr.ccs.tencentyun.com"
   ]
 }
 EOF
