@@ -9,19 +9,25 @@ SERVICE_NAME="singbox"
 UPDATE_TIME="0 4 * * *"
 
 # -----------------------------
-# 检查端口 8081 占用并强制杀掉
+# 检查端口占用并处理
 # -----------------------------
-OCCUPY_PID=$(ss -tlnp | grep ":$WEB_PORT" | awk '{print $7}' | cut -d',' -f2)
-if [ -n "$OCCUPY_PID" ]; then
-    echo "端口 $WEB_PORT 被占用，强制杀掉 PID $OCCUPY_PID..."
-    sudo kill -9 $OCCUPY_PID
-    sleep 1
+echo "检查端口 $WEB_PORT 是否被占用..."
+if sudo lsof -i :$WEB_PORT >/dev/null 2>&1; then
+    echo "端口 $WEB_PORT 被占用，尝试释放..."
+    sudo fuser -k $WEB_PORT/tcp >/dev/null 2>&1 || true
+    sleep 2
+    # 如果仍被占用，使用其他端口
+    if sudo lsof -i :$WEB_PORT >/dev/null 2>&1; then
+        WEB_PORT=$((WEB_PORT + 1))
+        echo "端口仍被占用，改用端口: $WEB_PORT"
+    fi
 fi
 
 # -----------------------------
 # 检查 SOCKS 端口是否被占用
 # -----------------------------
-while ss -tlnp | grep -q ":$SOCKS_PORT"; do
+echo "检查端口 $SOCKS_PORT 是否被占用..."
+while sudo lsof -i :$SOCKS_PORT >/dev/null 2>&1; do
     echo "SOCKS 端口 $SOCKS_PORT 被占用，尝试下一个端口..."
     SOCKS_PORT=$((SOCKS_PORT + 1))
 done
