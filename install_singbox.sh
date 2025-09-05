@@ -142,13 +142,8 @@ sudo tee $CONFIG_FILE <<EOL
     }
   ],
   "route": {
-    "rules": [
-      {
-        "geoip": "cn",
-        "outbound": "direct"
-      }
-    ],
-    "auto_detect_interface": true
+    "auto_detect_interface": true,
+    "final": "proxy"
   }
 }
 EOL
