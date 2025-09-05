@@ -8,16 +8,28 @@ set -e
 # 默认订阅链接（可修改）
 SUB_URL="https://10ncydlf.flsubcn.cc:2096/zvlqjih1t/mukeyvbugo4xzyjj?singbox=1&extend=1"
 
-# 安装依赖: Docker + Docker Compose
-echo "==> 安装 Docker 与 Docker Compose..."
+# 检查并安装 Docker + Docker Compose
+echo "==> 检查 Docker 与 Docker Compose..."
 if ! command -v docker &> /dev/null; then
+    echo "Docker 未安装，正在安装..."
     curl -fsSL https://get.docker.com | sh
+else
+    echo "Docker 已安装，跳过安装步骤以保护现有配置"
 fi
 
 if ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose 未安装，正在安装..."
     sudo apt update
     sudo apt install -y docker-compose
+else
+    echo "Docker Compose 已安装"
 fi
+
+# 验证 Docker 服务状态
+echo "==> 验证 Docker 服务状态..."
+sudo systemctl status docker --no-pager
+echo "==> Docker 配置信息:"
+sudo docker info | head -20
 
 # 创建工作目录
 CLASH_DIR="/root/clash"
@@ -27,20 +39,19 @@ mkdir -p "$CLASH_DIR"
 echo "==> 拉取 Sing-Box 订阅配置..."
 curl -L "$SUB_URL" -o "$CLASH_DIR/config.json"
 
-# 确保 external-controller 配置，Yacd 可用
-if ! grep -q "external-controller" "$CLASH_DIR/config.json"; then
-cat >> "$CLASH_DIR/config.json" <<EOF
-
-"experimental": {
-  "clash_api": {
-    "external_controller": "0.0.0.0:9090",
-    "external_ui": "metacubexd",
-    "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
-    "external_ui_download_detour": "select",
-    "default_mode": "rule"
-  }
-}
-EOF
+# 确保 experimental 配置，Yacd 可用
+if ! grep -q "experimental" "$CLASH_DIR/config.json"; then
+    # 备份原配置
+    cp "$CLASH_DIR/config.json" "$CLASH_DIR/config.json.bak"
+    
+    # 使用 jq 添加 experimental 配置
+    if command -v jq &> /dev/null; then
+        jq '. + {"experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "metacubexd", "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip", "external_ui_download_detour": "select", "default_mode": "rule"}}}' "$CLASH_DIR/config.json.bak" > "$CLASH_DIR/config.json"
+    else
+        # 如果没有 jq，安装它
+        sudo apt install -y jq
+        jq '. + {"experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "metacubexd", "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip", "external_ui_download_detour": "select", "default_mode": "rule"}}}' "$CLASH_DIR/config.json.bak" > "$CLASH_DIR/config.json"
+    fi
 fi
 
 # 创建更新脚本
