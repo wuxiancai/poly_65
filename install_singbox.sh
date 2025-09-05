@@ -89,6 +89,10 @@ chmod +x "$CLASH_DIR/update.sh"
 
 # 创建 docker-compose.yml
 cat > "$CLASH_DIR/docker-compose.yml" <<'EOF'
+networks:
+  sing-box-net:
+    driver: bridge
+
 services:
   sing-box:
     image: ghcr.io/akafeng/sing-box:latest
@@ -100,13 +104,21 @@ services:
       - "0.0.0.0:7890:7890"   # HTTP/SOCKS5 代理端口，绑定所有网络接口
       - "0.0.0.0:9090:9090"   # API 控制端口，绑定所有网络接口
     command: sing-box run -c /etc/sing-box/config.json
+    networks:
+      - sing-box-net
 
   yacd:
     image: ghcr.io/haishanh/yacd:master
     container_name: yacd
     restart: always
     ports:
-      - "0.0.0.0:8081:80"  # Web 控制台端口，绑定所有网络接口  
+      - "0.0.0.0:8081:80"  # Web 控制台端口，绑定所有网络接口
+    environment:
+      - REACT_APP_CLASH_API_BASE_URL=http://sing-box:9090
+    depends_on:
+      - sing-box
+    networks:
+      - sing-box-net  
 EOF
 
 # 启动服务
