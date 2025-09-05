@@ -98,14 +98,27 @@ services:
       - "8080:80"     # Web 控制台端口
 EOF
 
-# 手动拉取镜像（利用 Docker 代理配置）
-echo "==> 拉取 Docker 镜像..."
-docker pull ghcr.io/xtls/xray-core:latest
-docker pull ghcr.io/haishanh/yacd:latest
-
 # 启动服务
 echo "==> 启动 Sing-Box + Yacd..."
 cd "$CLASH_DIR"
+
+# 尝试拉取镜像（带重试机制）
+echo "==> 拉取 Docker 镜像..."
+for i in {1..3}; do
+    echo "第 $i 次尝试拉取镜像..."
+    if docker compose pull; then
+        echo "镜像拉取成功！"
+        break
+    else
+        echo "镜像拉取失败，等待 10 秒后重试..."
+        sleep 10
+    fi
+    if [ $i -eq 3 ]; then
+        echo "警告: 镜像拉取失败，尝试直接启动服务..."
+    fi
+done
+
+# 启动容器
 docker compose up -d
 
 # 创建 crontab 定时任务（每天 4 点更新订阅）
