@@ -135,10 +135,17 @@ sudo chmod +x $INSTALL_DIR/sing-box
 echo "Sing-Box 下载完成"
 
 # -----------------------------
-# 生成配置文件
+# 下载并生成配置文件
 # -----------------------------
 CONFIG_FILE="$INSTALL_DIR/config.json"
-sudo tee $CONFIG_FILE <<EOL
+echo "正在下载订阅配置..."
+
+if [ -n "$SUBSCRIPTION_URL" ]; then
+    # 直接下载订阅配置作为主配置
+    sudo wget -O "$CONFIG_FILE" "$SUBSCRIPTION_URL" || {
+        echo "订阅下载失败，生成基础配置"
+        # 生成基础配置作为备用
+        sudo tee $CONFIG_FILE <<EOL
 {
   "log": {
     "level": "info",
@@ -168,18 +175,47 @@ sudo tee $CONFIG_FILE <<EOL
   ],
   "outbounds": [
     {
-      "type": "selector",
-      "tag": "proxy",
-      "outbounds": ["auto", "direct"]
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "final": "direct"
+  }
+}
+EOL
+    }
+    
+    # 检查下载的配置文件是否有效
+    if [ -f "$CONFIG_FILE" ]; then
+        echo "验证配置文件..."
+        if sudo $INSTALL_DIR/sing-box check -c $CONFIG_FILE; then
+            echo "✅ 配置文件验证成功"
+        else
+            echo "❌ 配置文件验证失败，使用备用配置"
+            # 如果验证失败，使用基础配置
+            sudo tee $CONFIG_FILE <<EOL
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "http-in",
+      "listen": "0.0.0.0",
+      "listen_port": $WEB_PORT
     },
     {
-      "type": "urltest",
-      "tag": "auto",
-      "outbounds": ["direct"],
-      "url": "http://www.gstatic.com/generate_204",
-      "interval": "1m",
-      "tolerance": 50
-    },
+      "type": "socks",
+      "tag": "socks-in",
+      "listen": "127.0.0.1",
+      "listen_port": $SOCKS_PORT
+    }
+  ],
+  "outbounds": [
     {
       "type": "direct",
       "tag": "direct"
@@ -187,25 +223,46 @@ sudo tee $CONFIG_FILE <<EOL
   ],
   "route": {
     "auto_detect_interface": true,
-    "final": "proxy"
+    "final": "direct"
   }
 }
 EOL
-
-# -----------------------------
-# 下载订阅配置
-# -----------------------------
-echo "正在下载订阅配置..."
-if [ -n "$SUBSCRIPTION_URL" ]; then
-    sudo wget -O "$INSTALL_DIR/subscription.json" "$SUBSCRIPTION_URL" || {
-        echo "订阅下载失败，使用基础配置"
-    }
-    
-    # 如果订阅下载成功，合并配置
-    if [ -f "$INSTALL_DIR/subscription.json" ]; then
-        echo "合并订阅配置..."
-        # 这里可以添加配置合并逻辑
+        fi
     fi
+else
+    echo "未提供订阅URL，生成基础配置"
+    sudo tee $CONFIG_FILE <<EOL
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "http-in",
+      "listen": "0.0.0.0",
+      "listen_port": $WEB_PORT
+    },
+    {
+      "type": "socks",
+      "tag": "socks-in",
+      "listen": "127.0.0.1",
+      "listen_port": $SOCKS_PORT
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "final": "direct"
+  }
+}
+EOL
 fi
 
 # -----------------------------
