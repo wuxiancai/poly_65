@@ -119,9 +119,10 @@ CONFIG_FILE="$INSTALL_DIR/config.json"
 echo "正在下载订阅配置..."
 
 if [ -n "$SUBSCRIPTION_URL" ]; then
-    # 直接下载订阅配置作为主配置
-    sudo wget --no-check-certificate -O "$CONFIG_FILE" "$SUBSCRIPTION_URL" || {
-        echo "订阅下载失败，生成基础配置"
+    # 直接下载订阅配置作为主配置（使用 curl，限制重试与超时，优先 IPv4，避免长时间卡住）
+    sudo curl -4 -fLk --connect-timeout 8 --max-time 25 --retry 1 --retry-delay 1 --retry-connrefused \
+        -o "$CONFIG_FILE" "$SUBSCRIPTION_URL" || {
+        echo "订阅下载失败，生成基础配置";
         # 生成基础配置作为备用
         sudo tee $CONFIG_FILE <<EOL
 {
@@ -377,6 +378,29 @@ sleep 3
 # 检查服务状态
 if sudo systemctl is-active --quiet $SERVICE_NAME; then
     echo "✅ sing-box服务启动成功"
+    # 后台任务：待本地代理可用后，通过代理拉取订阅并热更新
+    if [ -n "$SUBSCRIPTION_URL" ]; then
+      nohup bash -c '
+        CONFIG_FILE="'"$CONFIG_FILE"'"
+        INSTALL_DIR="'"$INSTALL_DIR"'"
+        SERVICE_NAME="'"$SERVICE_NAME"'"
+        SUBSCRIPTION_URL="'"$SUBSCRIPTION_URL"'"
+        HTTP_PORT="'"$HTTP_PORT"'"
+        for i in 1 2 3 4 5 6; do
+          if curl -fsSL -x http://127.0.0.1:${HTTP_PORT} --connect-timeout 5 --max-time 8 https://ipinfo.io/ip >/dev/null 2>&1; then
+            tmp=$(mktemp)
+            if curl -4 -fLk -x http://127.0.0.1:${HTTP_PORT} --connect-timeout 8 --max-time 25 --retry 1 --retry-delay 1 \
+                 -o "$tmp" "$SUBSCRIPTION_URL" && "$INSTALL_DIR"/sing-box check -c "$tmp" >/dev/null 2>&1; then
+              sudo mv "$tmp" "$CONFIG_FILE"
+              sudo systemctl restart "$SERVICE_NAME"
+              echo "订阅已通过代理更新并重启服务" >> /tmp/singbox_post_update.log
+              break
+            fi
+          fi
+          sleep 10
+        done
+      ' >/dev/null 2>&1 &
+    fi
 else
     echo "❌ sing-box服务启动失败"
     echo "查看错误日志:"
